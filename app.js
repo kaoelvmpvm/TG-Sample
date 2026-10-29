@@ -86,7 +86,7 @@ function focusProgress(){
 }
 function focusHand(){
  const p=active(game),n=p.hand.length;
- return `<section class="focus-hand v13-hand-shelf" aria-label="${E(p.name)}的手牌"><div class="focus-section-title"><strong>我的手牌</strong><span>${n} 張 · 點選預覽／拖曳到中央出牌</span></div><div class="focus-hand-cards v13-hand-fan">${p.hand.map((id,i)=>art(id,`playable ${selectedCard===id?'selected':''}`,'play').replace('<button ',`<button style="--fan-angle:${((i-(n-1)/2)*7).toFixed(1)}deg;--fan-rise:${Math.abs(i-(n-1)/2)*5}px" draggable="true" `)).join('')||'<span>目前沒有手牌</span>'}</div></section>`;
+ return `<section class="focus-hand v13-hand-shelf" aria-label="${E(p.name)}的手牌"><div class="focus-section-title"><strong>我的手牌</strong><span>${n} 張 · 點選預覽／拖出後放開即出牌</span></div><div class="focus-hand-cards v13-hand-fan">${p.hand.map((id,i)=>art(id,`playable ${selectedCard===id?'selected':''}`,'play').replace('style="',`draggable="false" style="--fan-angle:${((i-(n-1)/2)*7).toFixed(1)}deg;--fan-rise:${Math.abs(i-(n-1)/2)*5}px;`)).join('')||'<span>目前沒有手牌</span>'}</div><p class="v14-hand-instruction">向外拖出一張牌，放開就能打出；想先看內容，請輕點卡牌。</p></section>`;
 }
 function focusStage(){
  const p=active(game);
@@ -94,7 +94,7 @@ function focusStage(){
  if(game.phase==='choose'){
   if(veil)return `<section class="focus-stage focus-handoff"><span class="focus-step">輪替玩家</span><h2>輪到 ${E(p.name)}</h2><p>請將裝置交給這位玩家，再顯示他的手牌。</p>${btn('我準備好了，顯示手牌','unlock','teal')}</section>`;
   const selection=p.hand.includes(selectedCard)?selectedCard:null;
-  return `<section class="focus-stage"><span class="focus-step">步驟 1 · 選擇手牌</span><h2>${selection?'確定要打出這張牌嗎？':'選一張卡牌開始回合'}</h2>${selection?`<div class="focus-card-preview">${art(selection,'large')}<div class="focus-preview-actions"><p>可以點擊卡面放大閱讀，確認後再出牌。</p>${btn('確認出牌','focus-confirm-play','teal')}${btn('返回選牌','focus-clear-select','ghost')}</div></div>`:`<div class="focus-drop-intro">${dropZone()}</div>`}</section>${focusHand()}`;
+  return `<section class="focus-stage"><span class="focus-step">步驟 1 · 選擇手牌</span><h2>${selection?'確定要打出這張牌嗎？':'選一張卡牌開始回合'}</h2>${selection?`<div class="focus-card-preview">${art(selection,'large')}<div class="focus-preview-actions"><p>可以點擊卡面放大閱讀，確認後再出牌。</p>${btn('確認出牌','focus-confirm-play','teal')}${btn('返回選牌','focus-clear-select','ghost')}</div></div>`:`<div class="v14-play-hint"><span aria-hidden="true">🃏</span><strong>拖出手牌，放開立即出牌</strong><small>也可以點選手牌，先預覽再確認</small></div>`}</section>${focusHand()}`;
  }
  if(game.phase==='confirm'){
   const c=CARD_BY_ID[game.current];
@@ -116,7 +116,14 @@ function focusDrawer(){
  const groups=[...FIVE,'四樂'];
  return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer focus-collection-drawer" role="dialog" aria-modal="true" aria-label="玩家集牌區"><div class="focus-drawer-head"><div><h2>公開集牌區</h2><p>選擇玩家，再查看不同面向的原版卡牌。</p></div>${btn('✕ 關閉','focus-close','small')}</div><div class="focus-player-tabs">${game.players.map(p=>`<button type="button" class="focus-player-tab ${p.id===player.id?'active':''}" data-act="focus-player" data-player="${p.id}">${E(p.name)} <small>${p.table.length} 張</small></button>`).join('')}</div><div class="focus-group-list">${groups.map(group=>{const ids=player.table.filter(id=>group==='四樂'?CARD_BY_ID[id].type==='fourjoy':cat(id)===group);return `<section class="focus-group"><h3>${group==='四樂'?'🌿':emoji[group]} ${group} <small>${ids.length} 張</small></h3>${ids.length?`<div class="focus-group-cards">${ids.map(id=>art(id,'tiny')).join('')}</div>`:'<p>尚未蒐集</p>'}</section>`}).join('')}</div></aside></div>`;
 }
-function mainPage(){const decks=v13Decks();return `<div class="focus-layout v13-layout"><section class="v13-table" aria-label="幸福 GIVE ME 5 沉浸式遊戲桌"><div class="v13-felt"><div class="v13-game-heading"><span>GIVE ME 5 <em>·</em> 健康 4 EVER</span><small>POSITIVE MENTAL HEALTH</small></div>${focusRoster()}<div class="v13-play-surface">${decks[0]}<div class="v13-main-stage">${focusStage()}</div>${decks[1]}</div>${!game.ended?focusProgress():''}<div class="focus-bottom-actions v13-board-actions">${btn('🗂️ 集牌區','focus-collections','small')}${btn('☰ 遊戲選單','focus-menu','small ghost')}</div></div></section>${focusDrawer()}</div>`;}
+function focusVisibleCollection(){
+ const p=active(game);
+ const cards=[...p.table].sort((a,b)=>{
+  const c=id=>CARD_BY_ID[id].type==='fourjoy'?5:FIVE.indexOf(cat(id));return c(a)-c(b);
+ });
+ return `<section class="v14-collection-board" aria-label="${E(p.name)}的集牌區"><div class="v14-collection-header"><div><h2>🎴 我的集牌區 <span>${p.table.length} 張</span></h2><p>已完成的卡牌會放在這裡，可點選放大閱讀</p></div>${btn('查看全部玩家 →','focus-collections','small v14-collection-open')}</div>${cards.length?`<div class="v14-collection-row" tabindex="0" aria-label="已收集的卡牌，可左右捲動查看">${cards.map(id=>`<div class="v14-collected-card">${art(id,'v14-collected-art')}<span>${CARD_BY_ID[id].type==='fourjoy'?'四樂':E(cat(id))}</span></div>`).join('')}</div>`:'<div class="v14-collection-empty"><span aria-hidden="true">＋</span> 完成卡牌任務後，卡片會自動加入此處</div>'}</section>`;
+}
+function mainPage(){const decks=v13Decks();return `<div class="focus-layout v13-layout"><section class="v13-table" aria-label="幸福 GIVE ME 5 沉浸式遊戲桌"><div class="v13-felt"><div class="v13-game-heading"><span>GIVE ME 5 <em>·</em> 健康 4 EVER</span><small>POSITIVE MENTAL HEALTH</small></div>${focusRoster()}<div class="v13-play-surface">${decks[0]}<div class="v13-main-stage">${focusStage()}</div>${decks[1]}</div>${!game.ended?focusVisibleCollection():''}${!game.ended?focusProgress():''}<div class="focus-bottom-actions v13-board-actions">${btn('🗂️ 全部玩家集牌','focus-collections','small')}${btn('☰ 遊戲選單','focus-menu','small ghost')}</div></div></section>${focusDrawer()}</div>`;}
 function icePage(){const p=active(game);if(game.ended)return `<div class="layout"><section class="tabletop">${playerChips()}<div class="center-game"><h2>🎉 ${game.winner===null?'本局已結束':E(game.players[game.winner].name)+' 獲勝！'}</h2>${btn('重新開始','restart','teal')}</div></section>${side()}</div>`;
  const label=FIVE[game.chant];const corners=[['tl','左上'],['tr','右上'],['bl','左下'],['br','右下']];return `<div class="layout"><section class="tabletop ice-tabletop">${playerChips()}<div class="phase-line"><span class="eyebrow">ICEBREAKER · ${game.flips} FLIPS</span><h2>⚡ 幸福心臟病</h2><p>輪到 ${E(p.name)}。翻牌時喊出「${E(label)}」，請自行辨識是否要搶拍！</p></div><div class="ice-arena" role="group" aria-label="幸福心臟病四角拍牌區">${corners.map(([pos,name])=>`<button type="button" class="slap-button slap-${pos} ${slapCorner===pos?'slap-active':''}" data-act="ice-slap" data-corner="${pos}" aria-label="${name}拍牌">拍</button>`).join('')}<div class="ice-card">${game.last?art(game.last.card,'large'):'<div class="veil">尚未翻出卡牌</div>'}</div></div><div class="ice-slap-status" role="status">${slapCount?`已拍 ${slapCount} 次 · 請依現場結果登記最後拍到或犯規者`:'四個角皆可拍牌；實際收牌者由教師確認'}</div><div class="actions">${btn(p.hand.length?'翻下一張牌':'跳過空手玩家／判定勝負','ice-flip','teal')}${btn('登記收牌 / 犯規','ice-penalty','pink',game.center.length?'':'disabled')}</div><p class="white ice-deck-count">牌桌已有 ${game.center.length} 張 · 本局不提前顯示是否相符</p><div class="game-foot"><span>最後拍到／拍錯／喊錯的人收回桌上全部卡牌</span><span>四角拍鍵只記錄拍牌動作；不自動判定搶拍名次</span></div></section>${side()}</div>`}
 function rules(){return `<article class="panel rules"><div class="eyebrow">RULE BOOK</div><h2>📖 遊戲規則</h2><h3>主遊戲</h3><ol><li>建議 4–6 人。將任務、倡議、四樂合成主牌堆（96 張），魔法卡（16 張）獨立牌堆。</li><li>每位玩家先抽三張手牌，輪流亮一張。任務卡完成指定任務；倡議卡朗讀標題與內容；四樂卡完成任務並抽魔法卡執行效果。</li><li>成功卡牌放入集牌區；四樂卡可替代任一倡議面向，每套限一張。完成「情緒、參與、關係、意義、成就」五正各一張並比出指定手勢，可兌換健康幣。</li><li>第一次成套：任務卡較多 5 枚，倡議卡較多 4 枚；第二次 6 / 5 枚；第三次 7 / 6 枚。四樂卡視為倡議卡。</li><li>任一玩家完成第三套，遊戲結束，全體比較健康幣數量，最多者勝；幣數相同則並列。</li></ol><h3>幸福心臟病</h3><ol><li>只使用 80 張任務與倡議五正卡，洗牌並平均分給玩家。</li><li>依序喊「情緒、參與、關係、意義、成就」，每喊一次翻一張卡。</li><li>喊出的面向與翻出的卡相同時，立刻搶拍。最後拍、拍錯或喊錯的玩家收走桌上所有卡，並開始下一回合。</li><li>最先出完手牌且再完成一回合、沒有被罰收卡的玩家獲勝。</li><li>線上版四角「拍」鍵可供同桌就近操作，但不自動判定最後一位；由教師確認後登記收牌者。</li></ol><div class="notice">教學提醒：個人情緒、自我理解與生命經驗沒有唯一標準答案。同儕認證重點是確認活動是否完成，而不是評判分享內容。</div><div class="actions">${btn('回到首頁','home','teal')}</div></article>`}
@@ -180,24 +187,65 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)re
 });
 app.addEventListener('change',e=>{if(e.target.id==='people-count'){size=Number(e.target.value);render();}if(e.target.id==='filter-type'){typeFilter=e.target.value;render();}if(e.target.id==='fullscreen-pref'){setFullscreenPreference(e.target.checked);}});
 
-// Desktop drag-and-drop and touch/pen pointer dragging share the same drop target.
-function canDragCard(node){return node?.matches?.('.art[data-act="play"]')&&page==='play'&&game?.kind==='main'&&game.phase==='choose'&&!veil}
-function isOverDropzone(x,y){return Boolean(document.elementFromPoint(x,y)?.closest('[data-dropzone="play"]'))}
-function markDropzone(on){document.querySelector('[data-dropzone="play"]')?.classList.toggle('drop-over',on)}
-function dropCard(id){if(!game||game.kind!=='main'||game.phase!=='choose'||veil||!active(game).hand.includes(id)){toast('這張卡目前無法出牌');return}performCardPlay(id);}
-app.addEventListener('dragstart',e=>{const card=e.target.closest?.('.art[data-act="play"]');if(!canDragCard(card)){e.preventDefault();return;}dragId=card.dataset.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragId);card.classList.add('drag-source')});
-app.addEventListener('dragover',e=>{if(!e.target.closest?.('[data-dropzone="play"]'))return;e.preventDefault();e.dataTransfer.dropEffect='move';markDropzone(true)});
-app.addEventListener('dragleave',e=>{if(e.target.matches?.('[data-dropzone="play"]'))markDropzone(false)});
-app.addEventListener('drop',e=>{if(!e.target.closest?.('[data-dropzone="play"]'))return;e.preventDefault();markDropzone(false);const id=e.dataTransfer.getData('text/plain')||dragId;dragId=null;dropCard(id)});
-app.addEventListener('dragend',()=>{dragId=null;markDropzone(false);app.querySelector('.drag-source')?.classList.remove('drag-source')});
-function clearPointerDrag(){if(!pointerDrag)return;pointerDrag.ghost?.remove();pointerDrag.source?.classList.remove('drag-source');markDropzone(false);pointerDrag=null}
-app.addEventListener('pointerdown',e=>{const slap=e.target.closest?.('.slap-button');if(slap){lastSlapPointerAt=Date.now();registerSlap(slap.dataset.corner);return;}if(!['touch','pen'].includes(e.pointerType))return;const card=e.target.closest?.('.art[data-act="play"]');if(!canDragCard(card))return;pointerDrag={id:card.dataset.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,source:card,ghost:null,moved:false};});
-app.addEventListener('pointermove',e=>{const d=pointerDrag;if(!d||d.pointerId!==e.pointerId)return;if(!d.moved&&Math.hypot(e.clientX-d.startX,e.clientY-d.startY)<10)return;
- if(!d.moved){d.moved=true;d.source.classList.add('drag-source');d.ghost=d.source.cloneNode(true);d.ghost.removeAttribute('draggable');d.ghost.classList.add('touch-drag-ghost');document.body.appendChild(d.ghost)}
- e.preventDefault();d.ghost.style.left=e.clientX+'px';d.ghost.style.top=e.clientY+'px';markDropzone(isOverDropzone(e.clientX,e.clientY));
+// V1.4: one Pointer Events implementation for mouse, touch and pen.
+// Click = preview, deliberate pull (>= 45px) + release = immediate play anywhere.
+// Native HTML Drag and Drop is disabled so it cannot compete for a mouse drag.
+function canDragCard(node){return node?.matches?.('.focus-hand-cards .art[data-act="play"]')&&page==='play'&&game?.kind==='main'&&game.phase==='choose'&&!veil}
+function dropCard(id,source){
+ if(!game||game.kind!=='main'||game.phase!=='choose'||veil||!active(game).hand.includes(id)){
+  toast('這張卡目前無法出牌');return;
+ }
+ selectedCard=null;performCardPlay(id,source);
+}
+function clearPointerDrag(){
+ const d=pointerDrag;if(!d)return;
+ pointerDrag=null;
+ d.ghost?.remove();d.source?.classList.remove('drag-source');
+ app.querySelector('.v13-hand-fan')?.classList.remove('is-dragging');
+ document.body.classList.remove('v14-card-dragging','v14-ready-to-play');
+ if(d.source?.hasPointerCapture?.(d.pointerId)){
+  try{d.source.releasePointerCapture(d.pointerId)}catch(e){}
+ }
+}
+app.addEventListener('dragstart',e=>{if(e.target.closest?.('.focus-hand-cards .art'))e.preventDefault()});
+app.addEventListener('pointerdown',e=>{
+ const slap=e.target.closest?.('.slap-button');
+ if(slap){lastSlapPointerAt=Date.now();registerSlap(slap.dataset.corner);return}
+ const card=e.target.closest?.('.focus-hand-cards .art[data-act="play"]');
+ if(!canDragCard(card)||e.button!==0||pointerDrag)return;
+ pointerDrag={id:card.dataset.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,source:card,ghost:null,moved:false};
+ try{card.setPointerCapture(e.pointerId)}catch(err){}
+});
+app.addEventListener('pointermove',e=>{
+ const d=pointerDrag;if(!d||d.pointerId!==e.pointerId)return;
+ d.lastX=e.clientX;d.lastY=e.clientY;
+ const distance=Math.hypot(e.clientX-d.startX,e.clientY-d.startY);
+ if(!d.moved&&distance<12)return;
+ if(!d.moved){
+  d.moved=true;d.source.classList.add('drag-source');
+  app.querySelector('.v13-hand-fan')?.classList.add('is-dragging');
+  document.body.classList.add('v14-card-dragging');
+  d.ghost=d.source.cloneNode(true);d.ghost.removeAttribute('draggable');
+  d.ghost.classList.add('touch-drag-ghost','v14-drag-ghost');
+  d.ghost.style.transform='translate(-50%, -50%) rotate(-5deg) scale(1.08)';
+  document.body.appendChild(d.ghost);
+ }
+ e.preventDefault();
+ d.ghost.style.left=e.clientX+'px';d.ghost.style.top=e.clientY+'px';
+ document.body.classList.toggle('v14-ready-to-play',distance>=45);
 },{passive:false});
-app.addEventListener('pointerup',e=>{const d=pointerDrag;if(!d||d.pointerId!==e.pointerId)return;const shouldPlay=d.moved&&isOverDropzone(e.clientX,e.clientY);const id=d.id;if(d.moved){e.preventDefault();suppressPlayClickUntil=Date.now()+700;}clearPointerDrag();if(shouldPlay)dropCard(id)});
+app.addEventListener('pointerup',e=>{
+ const d=pointerDrag;if(!d||d.pointerId!==e.pointerId)return;
+ const distance=Math.hypot(e.clientX-d.startX,e.clientY-d.startY);
+ const doPlay=d.moved&&distance>=45;
+ const id=d.id,origin=d.source;
+ if(d.moved){e.preventDefault();suppressPlayClickUntil=Date.now()+800}
+ clearPointerDrag();
+ if(doPlay)dropCard(id,origin);
+});
 app.addEventListener('pointercancel',clearPointerDrag);
+app.addEventListener('lostpointercapture',e=>{if(pointerDrag?.pointerId===e.pointerId)clearPointerDrag()});
+window.addEventListener('blur',clearPointerDrag);
 
 const probe=new Image();probe.onerror=()=>document.body.classList.add('no-art');probe.onload=()=>document.body.classList.remove('no-art');probe.src='./assets/cards-atlas.webp';
 render();
