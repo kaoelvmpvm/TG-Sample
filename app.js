@@ -1,4 +1,5 @@
 import {CARDS,CARD_BY_ID} from './cards.js';
+import {setupFeedback} from './feedback.js';
 import {FIVE,FOUR,KEY,newGame,newIce,active,play,complete,pass,availableSets,validSet,exchangeSet,delaySet,resolveMagic,magicTargets,undo,finish,standings,iceFlip,icePenalty,iceFinish,validate,cat,kindLabel} from './game.js';
 const app=document.querySelector('#app'); const elToast=document.querySelector('#toast');
 let page='home',game=null,mode='main',size=4,veil=true,viewCard=null,chosen=[],typeFilter='all',notice='',motion=true;
@@ -6,6 +7,10 @@ let preferFullscreen=true, immersiveFallback=false, slapCorner=null, slapCount=0
 let pointerDrag=null, dragId=null, suppressPlayClickUntil=0, lastSlapPointerAt=0;
 // V1.2: main-game presentation state, deliberately separate from rules engine.
 let focusPanel=null, focusPlayer=0, selectedCard=null;
+// V1.5 sensory feedback is presentation-only.
+let soundOn=false;
+try { soundOn=localStorage.getItem('tg-sound-enabled')==='true'; motion=localStorage.getItem('tg-motion-enabled')!=='false'; } catch(e) {}
+const fx=setupFeedback({CARD_BY_ID,motionEnabled:()=>motionEnabled(),flyCardClone:(...args)=>flyCardClone(...args),getSoundOn:()=>soundOn});
 try { preferFullscreen=localStorage.getItem('tg-pref-fullscreen')!=='false'; } catch(e) { /* private browsing */ }
 const inFullscreen=()=>Boolean(document.fullscreenElement||immersiveFallback);
 function setFullscreenPreference(checked){preferFullscreen=checked;try{localStorage.setItem('tg-pref-fullscreen',String(checked))}catch(e){}}
@@ -34,7 +39,11 @@ function art(id,klass='',action='view'){
 }
 function btn(label,action,klass='primary',data=''){return `<button class="btn ${klass}" data-act="${action}" ${data}>${label}</button>`}
 function toast(message){elToast.textContent=message;elToast.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>{elToast.style.display='none'},3800)}
-function commit(action){try{action();persist();render()}catch(err){console.error(err);toast(err.message||'操作未完成，請再試一次。')}}
+function commit(action,options={}){
+ const before=!options.silent&&page==='play'&&game?.kind==='main'?fx.before(game):null;
+ try{action();persist();render();if(before)fx.after(before,game)}
+ catch(err){console.error(err);toast(err.message||'操作未完成，請再試一次。')}
+}
 function persist(){if(!game)return;try{localStorage.setItem(KEY,JSON.stringify(game))}catch(e){toast('瀏覽器暫時無法保存進度；遊戲仍可操作。')}}
 function load(){try{const v=localStorage.getItem(KEY);return v?validate(JSON.parse(v)):null}catch(e){console.warn('discarding corrupt local progress',e);return null}}
 function header(){
@@ -110,7 +119,7 @@ function focusStage(){
 }
 function focusDrawer(){
  if(!focusPanel)return '';
- if(focusPanel==='menu')return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer" role="dialog" aria-modal="true" aria-label="遊戲選單"><div class="focus-drawer-head"><h2>遊戲選單</h2>${btn('✕ 關閉','focus-close','small')}</div><p class="focus-drawer-note">不常使用的操作集中在這裡，避免干擾遊戲。</p><div class="focus-menu-actions">${btn('🗂️ 查看集牌區','focus-collections')}${btn('📖 遊戲規則','rules')}${btn('🕒 操作紀錄','focus-log')}${btn('↶ 復原上一步','undo')}${btn('⌂ 返回首頁','home')}${btn('結束本局','end','danger')}</div></aside></div>`;
+ if(focusPanel==='menu')return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer" role="dialog" aria-modal="true" aria-label="遊戲選單"><div class="focus-drawer-head"><h2>遊戲選單</h2>${btn('✕ 關閉','focus-close','small')}</div><p class="focus-drawer-note">不常使用的操作集中在這裡，避免干擾遊戲。</p><div class="focus-menu-actions">${btn('🗂️ 查看集牌區','focus-collections')}${btn('📖 遊戲規則','rules')}${btn('🕒 操作紀錄','focus-log')}<div class="v15-menu-title">遊戲互動設定</div>${btn(soundOn?'🔊 關閉音效':'🔇 開啟音效','toggle-sound')}${btn(motion?'✨ 關閉動態效果':'✨ 開啟動態效果','toggle-motion')}${btn('↶ 復原上一步','undo')}${btn('⌂ 返回首頁','home')}${btn('結束本局','end','danger')}</div></aside></div>`;
  if(focusPanel==='log')return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer" role="dialog" aria-modal="true" aria-label="操作紀錄"><div class="focus-drawer-head"><h2>操作紀錄</h2>${btn('✕ 關閉','focus-close','small')}</div><ul class="focus-log">${game.log.map(x=>`<li>${E(x)}</li>`).join('')}</ul></aside></div>`;
  const player=game.players[focusPlayer]||active(game);
  const groups=[...FIVE,'四樂'];
@@ -171,6 +180,8 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)re
  if(a==='focus-close'){if(e.target.closest('.focus-drawer')&&e.target.dataset.act!=='focus-close')return;focusPanel=null;render();return}
  if(a==='focus-player'){focusPlayer=Number(b.dataset.player);render();return}
  if(a==='focus-clear-select'){selectedCard=null;render();return}
+ if(a==='toggle-sound'){soundOn=!soundOn;try{localStorage.setItem('tg-sound-enabled',String(soundOn))}catch(e){}if(soundOn)fx.sound('collect');render();return}
+ if(a==='toggle-motion'){motion=!motion;try{localStorage.setItem('tg-motion-enabled',String(motion))}catch(e){}if(!motion)fx.stop();render();return}
  if(a==='focus-confirm-play'){if(!selectedCard)return;const playing=selectedCard;selectedCard=null;performCardPlay(playing,app.querySelector('.focus-card-preview .art'));return}
  if(a==='setup-main'||a==='setup-ice'){mode=a==='setup-ice'?'ice':'main';size=4;goto('setup');return}
  if(a==='start'){start();return}if(a==='resume'){if(preferFullscreen)requestFullscreen();game=load();if(!game){toast('找不到可用的存檔');return;}veil=game.kind==='main'&&game.phase==='choose';goto('play');return}
@@ -180,7 +191,7 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)re
  if(a==='set-submit'){commit(()=>{const cards=chosen.length?chosen:availableSets(active(game))[0];if(!validSet(active(game),cards))throw Error('成套卡牌需要五個不同面向');exchangeSet(game,cards);chosen=[]});return}
  if(a==='set-delay'){commit(()=>{delaySet(game);chosen=[]});return}
  if(a==='pass'){commit(()=>{pass(game);selectedCard=null;veil=game.phase==='choose'});if(game?.kind==='main'&&!game.ended)flyBackFromDeck();return}
- if(a==='undo'){if(!game||!game.history?.length){toast('沒有可以復原的步驟');return}commit(()=>{undo(game);selectedCard=null;focusPanel=null;veil=game.kind==='main'&&game.phase==='choose'});return}
+ if(a==='undo'){if(!game||!game.history?.length){toast('沒有可以復原的步驟');return}commit(()=>{undo(game);selectedCard=null;focusPanel=null;veil=game.kind==='main'&&game.phase==='choose'},{silent:true});return}
  if(a==='end'){if(!confirm('確定結束並結算目前的遊戲嗎？'))return;commit(()=>game.kind==='main'?finish(game):iceFinish(game,null));return}
  if(a==='restart'){mode=game?.kind==='ice'?'ice':'main';size=game?.players?.length||4;goto('setup');return}
  if(a==='ice-flip'){slapCount=0;slapCorner=null;commit(()=>iceFlip(game));return}if(a==='ice-slap'){if(Date.now()-lastSlapPointerAt>500)registerSlap(b.dataset.corner);return}if(a==='ice-penalty'){penaltyDialog();return}
