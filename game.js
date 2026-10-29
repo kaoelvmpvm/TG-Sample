@@ -119,10 +119,11 @@ export function newIce(names,random=Math.random){
  if(names.length<2||names.length>6)throw Error('幸福心臟病需要 2–6 位玩家');
  const deck=shuffle(CARDS.filter(c=>['task','advocacy'].includes(c.type)).map(c=>c.id),random);const players=names.map((name,i)=>({id:i,name:name.trim()||`玩家${i+1}`,hand:[],emptySince:null}));
  deck.forEach((id,i)=>players[i%players.length].hand.push(id));
- return {kind:'ice',version:1,players,center:[],turn:0,chant:0,flips:0,phase:'flip',last:null,ended:false,winner:null,log:['幸福心臟病開始，依序喊五正並翻牌。'],history:[]};
+ return {kind:'ice',version:1,players,center:[],turn:0,chant:0,flips:0,phase:'flip',last:null,icePending:false,iceTaps:[],iceReports:[],ended:false,winner:null,log:['幸福心臟病開始，依序喊五正並翻牌。'],history:[]};
 }
 export function iceFlip(s){
  if(s.phase!=='flip'||s.ended)throw Error('目前不能翻牌');
+ if(s.icePending)throw Error('請先完成本張牌的限時判定');
  saveUndo(s);let tries=0;
  while(!s.players[s.turn].hand.length&&tries<s.players.length){
   const p=s.players[s.turn];if(p.emptySince!==null&&s.flips>p.emptySince){iceFinish(s,p.id);return null;}
@@ -131,6 +132,7 @@ export function iceFlip(s){
  if(tries>=s.players.length){iceFinish(s,null);return null;}
  const p=s.players[s.turn],card=p.hand.shift();s.center.push(card);s.last={card,shout:FIVE[s.chant],player:p.id,matched:cat(card)===FIVE[s.chant]};s.chant=(s.chant+1)%5;s.flips++;
  if(!p.hand.length)p.emptySince=s.flips;
+ s.icePending=true;s.iceTaps=[];
  note(s,`${p.name} 翻了一張牌。`);
  s.turn=(s.turn+1)%s.players.length;
  return s.last;
@@ -138,7 +140,7 @@ export function iceFlip(s){
 export function icePenalty(s,playerId,reason){
  if(s.phase!=='flip'||s.ended||!s.center.length)throw Error('牌桌沒有可回收的卡牌');
  const p=s.players.find(q=>q.id===playerId);if(!p)throw Error('無效玩家');
- saveUndo(s);p.hand.push(...s.center);s.center=[];p.emptySince=null;s.turn=p.id;
+ saveUndo(s);p.hand.push(...s.center);s.center=[];p.emptySince=null;s.turn=p.id;s.icePending=false;s.iceTaps=[];
  note(s,`${p.name} ${reason}，收回桌面全部卡牌。`);
 }
 export function iceMissedSlap(s){
@@ -162,6 +164,41 @@ export function validate(snapshot){
   if(snapshot.phase==='magic'&&!snapshot.pending)throw Error('魔法卡存檔不完整');
  }else{
   if(!['flip','finished'].includes(snapshot.phase)||!Array.isArray(snapshot.center)||!snapshot.players.every(p=>Array.isArray(p.hand)))throw Error('心臟病存檔無效');
+  if(typeof snapshot.icePending!=='boolean')snapshot.icePending=false;
+  if(!Array.isArray(snapshot.iceTaps))snapshot.iceTaps=[];
+  if(!Array.isArray(snapshot.iceReports))snapshot.iceReports=[];
  }
  return snapshot;
+}
+// Four-seat automatic adjudication used by tablet mode.
+export function iceRecordTap(s,playerId,atMs){
+ if(s.kind!=='ice'||s.ended||!s.icePending||!s.last)throw Error('目前不是搶拍時間');
+ if(!Number.isInteger(playerId)||playerId<0||playerId>=s.players.length)throw Error('拍牌座位無效');
+ if(!Array.isArray(s.iceTaps))s.iceTaps=[];
+ if(s.iceTaps.some(t=>t.playerId===playerId))return false;
+ s.iceTaps.push({playerId,atMs:Number.isFinite(atMs)?atMs:Date.now(),order:s.iceTaps.length+1});
+ return true;
+}
+export function iceAutoResolve(s){
+ if(s.kind!=='ice'||s.ended||!s.icePending||!s.last)throw Error('沒有等待判定的拍牌回合');
+ saveUndo(s);
+ const taps=[...(s.iceTaps||[])].sort((a,b)=>a.atMs-b.atMs||a.order-b.order);
+ const ids=s.players.map(p=>p.id);
+ const missing=ids.filter(id=>!taps.some(t=>t.playerId===id));
+ let punished=[],reason='';
+ if(s.last.matched){
+  if(missing.length){punished=missing;reason=missing.length===ids.length?'應拍未拍：全員未拍':`應拍未拍：${missing.map(id=>s.players[id].name).join('、')}`;}
+  else {punished=[taps[taps.length-1].playerId];reason=`最後拍到：${s.players[punished[0]].name}`;}
+ }else if(taps.length){punished=[taps[0].playerId];reason=`拍錯：${s.players[punished[0]].name}`;}
+ else reason='未出現符合的拍牌條件，繼續翻牌';
+ const allocation=Object.fromEntries(ids.map(id=>[id,0]));
+ if(punished.length){
+  s.center.forEach((card,i)=>{const id=punished[i%punished.length];const p=s.players[id];p.hand.push(card);p.emptySince=null;allocation[id]++;});
+  s.center=[];
+ }
+ s.icePending=false;s.iceTaps=[];
+ const report={flip:s.flips,matched:!!s.last.matched,shout:s.last.shout,taps,missing,penalized:punished,allocation,reason};
+ s.iceReports=[report,...(s.iceReports||[])].slice(0,30);
+ note(s,`第 ${s.flips} 張：${reason}${punished.length?'，收走桌面卡牌。':'。'}`);
+ return report;
 }

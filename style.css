@@ -305,3 +305,31 @@ body:has(.v13-layout){background:radial-gradient(ellipse at 50% -10%,#dce9e2 0%,
  .ice-teacher-actions .btn{padding:8px 11px;font-size:12px}
  .ice-tabletop.solo .game-foot{display:none}
 }
+
+
+/* V1.7 four-player automated adjudication */
+.ice-auto-arena{isolation:isolate;transition:border-color .12s,box-shadow .12s}
+.ice-auto-arena.ice-must-slap{border-color:#ff555c;box-shadow:0 0 0 4px rgba(255,69,79,.5),0 0 30px rgba(255,67,76,.5),inset 0 0 30px rgba(255,67,76,.16);animation:ice-alert-glow .48s ease-in-out infinite alternate}
+.ice-auto-arena.ice-must-slap .ice-card .art{border-color:#ff535c;box-shadow:0 0 0 4px rgba(255,64,80,.65),0 0 34px rgba(255,65,76,.55)}
+@keyframes ice-alert-glow{from{box-shadow:0 0 0 2px rgba(255,70,76,.45),0 0 18px rgba(255,63,80,.26)}to{box-shadow:0 0 0 7px rgba(255,60,79,.78),0 0 45px rgba(255,64,80,.7)}}
+.ice-auto-arena.ice-paused{filter:saturate(.7)}
+.ice-auto-arena .slap-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 2px;line-height:1.08}
+.ice-auto-arena .slap-button .ice-slap-verb{font-size:clamp(19px,2.5vw,27px);font-weight:950}
+.ice-auto-arena .slap-button small{font-size:clamp(9px,1.15vw,11px);max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:850;letter-spacing:0;color:rgba(62,45,22,.91)}
+.ice-auto-arena .slap-button.ice-pressed{background:#b8f0d4;border-color:#e8fff7;color:#164938;box-shadow:0 4px 0 #4cae88,0 9px 16px rgba(0,0,0,.16)}
+.ice-auto-arena .slap-button.ice-pressed small{color:#164938}
+.ice-auto-arena .slap-button:disabled:not(.ice-pressed){opacity:.66;cursor:default}
+.ice-auto-arena .slap-button.ice-next-seat{outline:2px solid rgba(214,255,244,.42);outline-offset:2px}
+.ice-center-controls{display:flex;flex-direction:column;align-items:center;gap:11px;max-width:160px}
+.ice-auto-arena .flip-button:disabled{opacity:.55;cursor:default}
+.ice-clock{width:108px;text-align:center;color:#fff;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 6px rgba(0,0,0,.32)}
+.ice-clock strong{font-size:21px;line-height:1.1;white-space:nowrap}
+.ice-timer-track{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.27);height:8px;margin-top:7px;border-radius:12px;overflow:hidden}
+.ice-timer-progress{height:100%;width:100%;background:#ffd568;border-radius:10px;transition:width .04s linear}
+.ice-must-slap .ice-timer-progress{background:#ff6e68}
+.ice-tap-summary{color:#cdece3;text-align:center;font-size:12px;font-weight:700}
+@media(max-width:740px){.ice-center-controls{max-width:100%;gap:6px}.ice-clock{width:104px}.ice-clock strong{font-size:19px}}
+@media(max-width:580px){.ice-auto-arena .slap-button small{font-size:9px}.ice-auto-arena .slap-button .ice-slap-verb{font-size:22px}.ice-clock{width:94px}.ice-clock strong{font-size:17px}}
+@media(max-width:360px){.ice-auto-arena .slap-button small{font-size:8px}.ice-auto-arena .slap-button .ice-slap-verb{font-size:20px}.ice-clock strong{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.ice-auto-arena.ice-must-slap{animation:none!important;border-color:#ff454f;box-shadow:0 0 0 5px #f55!important}}
+@media(min-width:800px) and (max-height:850px){.ice-tabletop.solo{min-height:0;gap:4px}.ice-arena.ring{margin:2px auto 0}.ice-tabletop.solo .ice-tap-summary{font-size:11px}}

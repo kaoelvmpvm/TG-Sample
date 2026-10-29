@@ -1,10 +1,13 @@
 import {CARDS,CARD_BY_ID} from './cards.js';
 import {setupFeedback} from './feedback.js';
-import {FIVE,FOUR,KEY,newGame,newIce,active,play,complete,pass,availableSets,validSet,exchangeSet,delaySet,resolveMagic,magicTargets,undo,finish,standings,iceFlip,icePenalty,iceMissedSlap,iceFinish,validate,cat,kindLabel} from './game.js';
+import {FIVE,FOUR,KEY,newGame,newIce,active,play,complete,pass,availableSets,validSet,exchangeSet,delaySet,resolveMagic,magicTargets,undo,finish,standings,iceFlip,icePenalty,iceMissedSlap,iceRecordTap,iceAutoResolve,iceFinish,validate,cat,kindLabel} from './game.js';
 const app=document.querySelector('#app'); const elToast=document.querySelector('#toast');
 let page='home',game=null,mode='main',size=4,veil=true,viewCard=null,chosen=[],typeFilter='all',notice='',motion=true;
 let preferFullscreen=true, immersiveFallback=false, slapCorner=null, slapCount=0;
 let pointerDrag=null, dragId=null, suppressPlayClickUntil=0, lastSlapPointerAt=0;
+const ICE_SIDES=['top','right','bottom','left'];
+let iceSeconds=4,iceCtl={mode:'ready',paused:false,deadline:0,remaining:0,timer:null,result:null};
+try{iceSeconds=Math.max(3,Math.min(6,Number(localStorage.getItem('tg-ice-seconds'))||4))}catch(e){}
 // V1.2: main-game presentation state, deliberately separate from rules engine.
 let focusPanel=null, focusPlayer=0, selectedCard=null;
 // V1.5: sensory feedback is presentation-only; never stored in game history.
@@ -52,7 +55,11 @@ function header(){
  return `<div class="header"><div class="brand"><div class="logo">🙌</div><div><h1>幸福 GIVE ME 5</h1><small>健康 4 EVER · 正向心理健康桌遊</small></div></div><nav class="nav">${btn(inFullscreen()?'⛶ 退出全螢幕':'⛶ 全螢幕','toggle-fullscreen','small fullscreen-toggle')} ${btn('首頁','home','small')}${btn('卡牌圖鑑','library','small')}${btn('遊戲規則','rules','small')}</nav></div>`;
 }
 function home(){const existing=load();return `<section class="hero"><div class="eyebrow">POSITIVE MENTAL HEALTH · CARD GAME</div><h2>把幸福放在掌心，<br>讓五正成為日常。</h2><p>保留原版卡牌設計，重新打造更穩定、直覺的數位桌遊。面對面朗讀、分享、行動與互動，依然是遊戲的主角。</p>${existing?btn('▶ 繼續上一局','resume','teal'):''}</section><section class="home-grid"><button class="tile" data-act="setup-main"><span class="emoji">🃏</span><h3>主遊戲</h3><p>蒐集情緒、參與、關係、意義、成就，完成五正成套並獲取幸福健康幣。</p><span class="link">開始新遊戲 →</span></button><button class="tile" data-act="setup-ice"><span class="emoji">⚡</span><h3>幸福心臟病</h3><p>依序喊出五正，辨識牌面、搶拍、收牌。保留實體互動，由教師記錄結果。</p><span class="link">開始破冰 →</span></button><button class="tile" data-act="library"><span class="emoji">📚</span><h3>原版卡牌圖鑑</h3><p>40 任務、40 倡議、16 四樂、16 魔法。共 112 張原始卡面。</p><span class="link">瀏覽卡牌 →</span></button></section><p class="help caption">本網站為單機共用裝置版本；遊戲資料儲存在本機瀏覽器，無須帳號或後端服務。</p>`}
-function setup(){return `<div class="panel setup"><div class="eyebrow">NEW GAME</div><h2>${mode==='main'?'主遊戲':'幸福心臟病'} · 建立對局</h2><p class="help">建議 4–6 人同桌進行。為測試與小組教學，也支援 2–3 人。</p><div class="formrow"><label for="people-count">玩家人數</label><select id="people-count" class="field number">${[2,3,4,5,6].map(n=>`<option ${size===n?'selected':''} value="${n}">${n} 人</option>`).join('')}</select></div><div class="player-fields">${Array.from({length:size},(_,i)=>`<div class="field-row"><span>${i+1} 號</span><input class="field player-name" value="玩家${i+1}" maxlength="14" aria-label="第${i+1}位玩家名稱"></div>`).join('')}</div><label class="fullscreen-setting"><input id="fullscreen-pref" type="checkbox" ${preferFullscreen?'checked':''}> 開始遊戲時進入全螢幕 <small>（部分手機瀏覽器會改為專注模式；可隨時退出）</small></label><div class="notice">${mode==='main'?'出牌後的任務由同桌判定完成；系統負責洗牌、魔法效果、成套與計分。':'此模式以現場搶拍為準。系統不提前提示牌面是否吻合；由教師選擇最後壓牌或犯規者。'}</div><div class="actions">${btn('建立並開始','start','teal')}${btn('取消','home','ghost')}</div></div>`}
+function setup(){
+ const count=mode==='ice'?4:size;
+ const chooser=mode==='ice'?`<div class="notice">四人圍繞平板的固定座位：①上方、②右側、③下方、④左側。翻牌依此順序循環。數位版規則：未拍者分擔桌牌。</div><div class="formrow"><label for="ice-seconds">搶拍倒數</label><select id="ice-seconds" class="field number">${[3,4,5,6].map(n=>`<option value="${n}" ${iceSeconds===n?'selected':''}>${n} 秒</option>`).join('')}</select></div>`:`<div class="formrow"><label for="people-count">玩家人數</label><select id="people-count" class="field number">${[2,3,4,5,6].map(n=>`<option ${size===n?'selected':''} value="${n}">${n} 人</option>`).join('')}</select></div>`;
+ return `<div class="panel setup"><div class="eyebrow">NEW GAME</div><h2>${mode==='main'?'主遊戲':'幸福心臟病'} · 建立對局</h2><p class="help">${mode==='ice'?'四位同學圍著平板，開始後由系統自動倒數與判定收牌。':'建議 4–6 人同桌進行。為測試與小組教學，也支援 2–3 人。'}</p>${chooser}<div class="player-fields">${Array.from({length:count},(_,i)=>`<div class="field-row"><span>${mode==='ice'?['上方','右方','下方','左方'][i]:i+1+' 號'}</span><input class="field player-name" value="玩家${i+1}" maxlength="14" aria-label="第${i+1}位玩家名稱"></div>`).join('')}</div><label class="fullscreen-setting"><input id="fullscreen-pref" type="checkbox" ${preferFullscreen?'checked':''}> 開始遊戲時進入全螢幕 <small>（部分手機瀏覽器會改為專注模式；可隨時退出）</small></label><div class="notice">${mode==='main'?'出牌後的任務由同桌判定完成；系統負責洗牌、魔法效果、成套與計分。':'點「翻」開始，不符合則 2.8 秒後自動翻下一張；符合時閃紅框並倒數，可隨時暫停。'}</div><div class="actions">${btn('建立並開始','start','teal')}${btn('取消','home','ghost')}</div></div>`;
+}
 function playerChips(){return `<div class="scorebar">${game.players.map((p,i)=>`<div class="score-chip ${i===game.turn?'active':''}"><strong>${E(p.name)}</strong><small>${game.kind==='main'?`🪙 ${p.coins} · ${p.sets}/3 套`:`🃏 ${p.hand.length} 張`}</small></div>`).join('')}</div>`}
 function phaseIntro(){return {choose:['選擇一張手牌','點選原版卡面，即可翻開並準備執行任務。'],confirm:['完成卡牌任務','朗讀原版卡面內容，完成後交由同桌確認。'],magic:['啟動幸福魔法','抽到四樂卡，完成魔法效果後才換下一個階段。'],set:['五正成套認證','蒐集五正各一張；可選一張四樂卡補足一種面向。'],pass:['本回合完成','補抽一張手牌，準備交給下一位玩家。'],finished:['本局結算','最多健康幣者獲勝，同分則並列。']}[game.phase]||['目前回合','']}
 function meter(p){const counts=FIVE.map(c=>p.table.filter(id=>cat(id)===c).length);return `<div class="meter">${FIVE.map((c,i)=>`<div class="meter-cell ${counts[i]?'done':''}"><b>${emoji[c]}</b>${c}<small style="display:block">${counts[i]||'－'}</small></div>`).join('')}</div><p class="muted caption">集滿五種面向，或以一張四樂卡替代缺少的面向，即可認證。</p>`}
@@ -133,29 +140,92 @@ function focusVisibleCollection(){
  return `<section class="v14-collection-board" aria-label="${E(p.name)}的集牌區"><div class="v14-collection-header"><div><h2>🎴 我的集牌區 <span>${p.table.length} 張</span></h2><p>已完成的卡牌會放在這裡，可點選放大閱讀</p></div>${btn('查看全部玩家 →','focus-collections','small v14-collection-open')}</div>${cards.length?`<div class="v14-collection-row" tabindex="0" aria-label="已收集的卡牌，可左右捲動查看">${cards.map(id=>`<div class="v14-collected-card">${art(id,'v14-collected-art')}<span>${CARD_BY_ID[id].type==='fourjoy'?'四樂':E(cat(id))}</span></div>`).join('')}</div>`:'<div class="v14-collection-empty"><span aria-hidden="true">＋</span> 完成卡牌任務後，卡片會自動加入此處</div>'}</section>`;
 }
 function mainPage(){const decks=v13Decks();return `<div class="focus-layout v13-layout"><section class="v13-table" aria-label="幸福 GIVE ME 5 沉浸式遊戲桌"><div class="v13-felt"><div class="v13-game-heading"><span>GIVE ME 5 <em>·</em> 健康 4 EVER</span><small>POSITIVE MENTAL HEALTH</small></div>${focusRoster()}<div class="v13-play-surface">${decks[0]}<div class="v13-main-stage">${focusStage()}</div>${decks[1]}</div>${!game.ended?focusVisibleCollection():''}${!game.ended?focusProgress():''}<div class="focus-bottom-actions v13-board-actions">${btn('🗂️ 全部玩家集牌','focus-collections','small')}${btn('☰ 遊戲選單','focus-menu','small ghost')}</div></div></section>${focusDrawer()}</div>`;}
-function iceNeedsSlap(){return Boolean(game&&game.kind==='ice'&&!game.ended&&game.last?.matched&&game.center.length)}
-function iceStatusText(){
- if(iceNeedsSlap()&&slapCount===0)return '這一張應該拍！若大家都沒拍，按「翻」會把桌面卡牌平均分回所有玩家。';
- if(slapCount)return `已拍 ${slapCount} 次 · 請先登記最後拍到或犯規者，再繼續下一輪。`;
- return '四個方向都可拍牌；中央「翻」鍵供輪到的玩家翻牌。';
+function iceResetControl(){
+ if(iceCtl.timer!==null)clearInterval(iceCtl.timer);
+ iceCtl={mode:'ready',paused:false,deadline:0,remaining:0,timer:null,result:null};
 }
-function iceFlipButtonLabel(){
- if(iceNeedsSlap()&&slapCount===0)return '翻｜沒人拍 → 平分桌牌';
- if(slapCount)return '先登記收牌 / 犯規';
- return active(game).hand.length?'翻':'翻｜跳過空手玩家';
+function iceStartTicker(){
+ if(iceCtl.timer!==null)clearInterval(iceCtl.timer);
+ iceCtl.timer=setInterval(iceTick,45);
 }
-function icePage(){const p=active(game);if(game.ended)return `<section class="ice-shell"><section class="tabletop ice-tabletop solo">${playerChips()}<div class="ice-phase-line"><span class="eyebrow">ICEBREAKER · ${game.flips} FLIPS</span><h2>⚡ 幸福心臟病</h2><p>本局結束 ${game.winner===null?'':'· 獲勝者：'+E(game.players[game.winner].name)}</p></div><div class="ice-end-card panel"><h3>${game.winner===null?'本局已結束':E(game.players[game.winner].name)+' 獲勝！'}</h3><p class="help">可重新開始下一局，或回首頁切換其他模式。</p><div class="actions">${btn('重新開始','restart','teal')}${btn('回到首頁','home','ghost')}</div></div></section></section>`;
- const label=FIVE[game.chant];const sides=[['top','上方'],['right','右方'],['bottom','下方'],['left','左方']];
- return `<section class="ice-shell"><section class="tabletop ice-tabletop solo">${playerChips()}<div class="ice-phase-line"><span class="eyebrow">ICEBREAKER · ${game.flips} FLIPS</span><h2>⚡ 幸福心臟病</h2><p>輪到 ${E(p.name)} 翻牌，請喊出「${E(label)}」。四位同學可從平板四側直接拍牌。</p></div><div class="ice-info-strip"><div class="ice-info-pill">目前喊牌：<strong>${E(label)}</strong></div><div class="ice-info-pill">牌桌累積：<strong>${game.center.length} 張</strong></div><div class="ice-info-pill">輪到翻牌：<strong>${E(p.name)}</strong></div></div><div class="ice-arena ring" role="group" aria-label="幸福心臟病四向拍牌區">${sides.map(([pos,name])=>`<button type="button" class="slap-button slap-${pos} ${slapCorner===pos?'slap-active':''}" data-act="ice-slap" data-corner="${pos}" aria-label="${name}拍牌">拍</button>`).join('')}<div class="ice-card-wrap"><div class="ice-card">${game.last?art(game.last.card,'large'):'<div class="veil">按下「翻」開始第一張卡</div>'}</div><button type="button" class="flip-button" data-act="ice-flip">翻</button></div></div><div class="ice-slap-status ${iceNeedsSlap()?'ice-alert':''}" role="status">${iceStatusText()}</div><div class="ice-teacher-actions">${btn('登記收牌 / 犯規','ice-penalty','pink',game.center.length?'':'disabled')}${btn('結束本局','end','small danger')}</div><div class="game-foot"><span>若喊出的面向與翻出的卡一致，應立刻搶拍。</span><span>若本輪應拍卻沒有人拍，按「翻」會自動將桌牌平均分回所有玩家。</span></div></section></section>`}
-function rules(){return `<article class="panel rules"><div class="eyebrow">RULE BOOK</div><h2>📖 遊戲規則</h2><h3>主遊戲</h3><ol><li>建議 4–6 人。將任務、倡議、四樂合成主牌堆（96 張），魔法卡（16 張）獨立牌堆。</li><li>每位玩家先抽三張手牌，輪流亮一張。任務卡完成指定任務；倡議卡朗讀標題與內容；四樂卡完成任務並抽魔法卡執行效果。</li><li>成功卡牌放入集牌區；四樂卡可替代任一倡議面向，每套限一張。完成「情緒、參與、關係、意義、成就」五正各一張並比出指定手勢，可兌換健康幣。</li><li>第一次成套：任務卡較多 5 枚，倡議卡較多 4 枚；第二次 6 / 5 枚；第三次 7 / 6 枚。四樂卡視為倡議卡。</li><li>任一玩家完成第三套，遊戲結束，全體比較健康幣數量，最多者勝；幣數相同則並列。</li></ol><h3>幸福心臟病</h3><ol><li>只使用 80 張任務與倡議五正卡，洗牌並平均分給玩家。</li><li>依序喊「情緒、參與、關係、意義、成就」，每喊一次翻一張卡。</li><li>喊出的面向與翻出的卡相同時，立刻搶拍。最後拍、拍錯或喊錯的玩家收走桌上所有卡，並開始下一回合。</li><li>最先出完手牌且再完成一回合、沒有被罰收卡的玩家獲勝。</li><li>線上版四角「拍」鍵可供同桌就近操作，但不自動判定最後一位；由教師確認後登記收牌者。</li></ol><div class="notice">教學提醒：個人情緒、自我理解與生命經驗沒有唯一標準答案。同儕認證重點是確認活動是否完成，而不是評判分享內容。</div><div class="actions">${btn('回到首頁','home','teal')}</div></article>`}
+function iceSetClock(mode,milliseconds){
+ iceCtl.mode=mode;iceCtl.remaining=milliseconds;iceCtl.deadline=performance.now()+milliseconds;
+ iceStartTicker();render();icePaintClock();
+}
+function icePaintClock(){
+ if(page!=='play'||game?.kind!=='ice')return;
+ const display=document.querySelector('#ice-timer-value');
+ const bar=document.querySelector('#ice-timer-progress');
+ const limit=iceCtl.mode==='reaction'?(game.last?.matched?iceSeconds*1000:2800):2100;
+ if(display)display.textContent=iceCtl.mode==='ready'?'準備':iceCtl.paused?'暫停':(iceCtl.remaining/1000).toFixed(1)+' 秒';
+ if(bar)bar.style.width=Math.min(100,Math.max(0,iceCtl.remaining/limit*100))+'%';
+}
+function iceTick(){
+ if(!game||page!=='play'||game.kind!=='ice'||game.ended){iceResetControl();return;}
+ if(iceCtl.paused)return;
+ iceCtl.remaining=Math.max(0,iceCtl.deadline-performance.now());icePaintClock();
+ if(iceCtl.remaining>0)return;
+ const mode=iceCtl.mode;
+ if(iceCtl.timer!==null){clearInterval(iceCtl.timer);iceCtl.timer=null;}
+ if(mode==='reaction'){
+  if(!game.last?.matched&&!(game.iceTaps||[]).length){iceAutoResolve(game);persist();iceBeginFlip();}
+  else iceFinishReaction();
+ }else if(mode==='result')iceBeginFlip();
+}
+function iceBeginFlip(){
+ if(!game||game.kind!=='ice'||game.ended||iceCtl.paused)return;
+ if(game.icePending){toast('請先完成這張卡的搶拍判定');return;}
+ try{
+  const before=game.flips;iceFlip(game);persist();
+  if(game.ended||game.flips===before){iceResetControl();render();return;}
+  iceCtl.result=null;iceSetClock('reaction',game.last.matched?iceSeconds*1000:2800);
+ }catch(e){toast(e.message||'翻牌失敗');iceResetControl();render();}
+}
+function iceFinishReaction(){
+ if(!game?.icePending)return;
+ try{const outcome=iceAutoResolve(game);persist();iceCtl.result=outcome;iceSetClock('result',2100);}
+ catch(e){toast(e.message||'判定失敗');iceResetControl();render();}
+}
+function iceTap(side,stamp){
+ if(!game||game.kind!=='ice'||game.ended||iceCtl.mode!=='reaction'||iceCtl.paused||!game.icePending)return;
+ const id=ICE_SIDES.indexOf(side);if(id<0||id>=game.players.length)return;
+ try{
+  const accepted=iceRecordTap(game,id,stamp);if(!accepted)return;persist();
+  const b=document.querySelector(`.slap-button[data-corner="${side}"]`);
+  b?.classList.add('ice-pressed');b?.setAttribute('aria-pressed','true');
+  const done=document.querySelector('#ice-tap-count');if(done)done.textContent=`已拍 ${game.iceTaps.length} / 4 人`;
+  if(!game.last.matched||game.iceTaps.length===game.players.length)iceFinishReaction();
+ }catch(e){toast(e.message||'拍牌失敗');}
+}
+function icePauseToggle(){
+ if(iceCtl.mode==='ready'){toast('先按中央「翻」開始本局');return;}
+ if(!iceCtl.paused){iceCtl.remaining=Math.max(0,iceCtl.deadline-performance.now());iceCtl.paused=true;}
+ else {iceCtl.deadline=performance.now()+iceCtl.remaining;iceCtl.paused=false;}
+ render();icePaintClock();
+}
+function iceResultMessage(){
+ const r=iceCtl.result;if(!r)return '';
+ if(!r.penalized.length)return '沒有拍錯，繼續下一張';
+ const missed=r.missing.length===game.players.length?'全員未拍':r.missing.map(id=>game.players[id].name).join('、');
+ const names=r.penalized.map(id=>`${E(game.players[id].name)} +${r.allocation[id]} 張`).join('、');
+ if(r.matched)return `⚠ ${r.missing.length?`未拍：${E(missed)}`:`最後拍：${E(game.players[r.penalized[0]].name)}`}｜${names}`;
+ return `拍錯：${E(game.players[r.penalized[0]].name)}｜${names}`;
+}
+function icePage(){
+ const p=active(game);
+ if(game.ended)return `<section class="ice-shell"><section class="tabletop ice-tabletop solo"><div class="ice-phase-line"><h2>🎉 幸福心臟病</h2><p>${game.winner===null?'本局已結束':E(game.players[game.winner].name)+' 獲勝！'}</p></div><div class="ice-end-card panel"><h3>遊戲結束</h3>${btn('再玩一局','restart','teal')}${btn('回首頁','home','ghost')}</div></section></section>`;
+ const warn=iceCtl.mode==='reaction'&&!!game.last?.matched&&!iceCtl.paused;
+ const seat=ICE_SIDES.map((side,id)=>{const q=game.players[id];const pressed=iceCtl.mode==='reaction'?Boolean(game.iceTaps?.some(t=>t.playerId===id)):iceCtl.mode==='result'?Boolean(iceCtl.result?.taps.some(t=>t.playerId===id)):false;return `<button type="button" class="slap-button slap-${side} ${pressed?'ice-pressed':''} ${game.turn===id?'ice-next-seat':''}" data-act="ice-slap" data-corner="${side}" aria-label="${E(q?.name||'玩家')} 拍牌" aria-pressed="${pressed}" ${iceCtl.mode!=='reaction'||iceCtl.paused?'disabled':''}><span class="ice-slap-verb">${pressed?'✓':'拍'}</span><small>${E(q?.name||'玩家')} · ${q?.hand.length||0} 張</small></button>`}).join('');
+ const message=iceCtl.mode==='result'?iceResultMessage():iceCtl.mode==='ready'?'按「翻」開始，之後自動輪流翻牌。':game.last?.matched?'🔴 符合拍牌條件！請在倒數結束前拍牌。':'本張不需拍牌，將自動翻下一張。';
+ return `<section class="ice-shell"><section class="tabletop ice-tabletop solo"><div class="ice-phase-line"><span class="eyebrow">ICEBREAKER · ${game.flips} FLIPS</span><h2>⚡ 幸福心臟病</h2></div><div class="ice-info-strip"><div class="ice-info-pill">喊牌：<strong>${E(game.icePending?game.last.shout:FIVE[game.chant])}</strong></div><div class="ice-info-pill">桌面：<strong>${game.center.length} 張</strong></div><div class="ice-info-pill">下位：<strong>${E(p.name)}</strong></div></div><div class="ice-arena ring ice-auto-arena ${warn?'ice-must-slap':''} ${iceCtl.paused?'ice-paused':''}" role="group" aria-label="四人固定位置拍牌區">${seat}<div class="ice-card-wrap"><div class="ice-card">${game.last?art(game.last.card,'large','noop'):'<div class="veil">按下「翻」開始</div>'}</div><div class="ice-center-controls"><button class="flip-button" data-act="ice-flip" ${iceCtl.mode!=='ready'?'disabled':''}>翻</button><div class="ice-clock" role="timer" aria-label="剩餘時間"><strong id="ice-timer-value">${iceCtl.mode==='ready'?'準備':(iceCtl.remaining/1000).toFixed(1)+' 秒'}</strong><div class="ice-timer-track"><div id="ice-timer-progress" class="ice-timer-progress"></div></div></div></div></div></div><div class="ice-slap-status ${warn?'ice-alert':''}" role="status">${message}</div><div class="ice-tap-summary" id="ice-tap-count">${iceCtl.mode==='result'?`拍牌順序：${(iceCtl.result?.taps||[]).map(t=>E(game.players[t.playerId].name)).join(' → ')||'無人拍牌'}`:`已拍 ${game.iceTaps?.length||0} / 4 人`}</div><div class="ice-teacher-actions">${btn(iceCtl.paused?'▶ 繼續':'⏸ 暫停','ice-pause','small')}${btn('結束本局','end','small danger')}</div><div class="game-foot"><span>固定順序：上 → 右 → 下 → 左</span><span>自動判定：最後拍／未拍／拍錯；多人未拍均分桌牌</span></div></section></section>`;
+}
+function rules(){return `<article class="panel rules"><div class="eyebrow">RULE BOOK</div><h2>📖 遊戲規則</h2><h3>主遊戲</h3><ol><li>建議 4–6 人。將任務、倡議、四樂合成主牌堆（96 張），魔法卡（16 張）獨立牌堆。</li><li>每位玩家先抽三張手牌，輪流亮一張。任務卡完成指定任務；倡議卡朗讀標題與內容；四樂卡完成任務並抽魔法卡執行效果。</li><li>成功卡牌放入集牌區；四樂卡可替代任一倡議面向，每套限一張。完成「情緒、參與、關係、意義、成就」五正各一張並比出指定手勢，可兌換健康幣。</li><li>第一次成套：任務卡較多 5 枚，倡議卡較多 4 枚；第二次 6 / 5 枚；第三次 7 / 6 枚。四樂卡視為倡議卡。</li><li>任一玩家完成第三套，遊戲結束，全體比較健康幣數量，最多者勝；幣數相同則並列。</li></ol><h3>幸福心臟病</h3><ol><li>只使用 80 張任務與倡議五正卡，洗牌並平均分給玩家。</li><li>依序喊「情緒、參與、關係、意義、成就」，每喊一次翻一張卡。</li><li>喊出的面向與翻出的卡相同時，立刻搶拍。最後拍、拍錯或喊錯的玩家收走桌上所有卡，並開始下一回合。</li><li>最先出完手牌且再完成一回合、沒有被罰收卡的玩家獲勝。</li><li>四人平板版固定上、右、下、左座位順序，系統自動記錄每人拍牌次序與時間，倒數後判定；未拍者分擔桌牌、四人都拍則最後拍到者收牌，拍錯直接收牌。這是數位版新增的限時規則。</li></ol><div class="notice">教學提醒：個人情緒、自我理解與生命經驗沒有唯一標準答案。同儕認證重點是確認活動是否完成，而不是評判分享內容。</div><div class="actions">${btn('回到首頁','home','teal')}</div></article>`}
 function library(){const subset=CARDS.filter(c=>typeFilter==='all'||c.type===typeFilter);return `<div class="subsection"><h2>📚 原版卡牌圖鑑</h2><select id="filter-type" class="select-control" style="width:190px">${[['all','全部 112 張'],['task','任務 40 張'],['advocacy','倡議 40 張'],['fourjoy','四樂 16 張'],['magic','魔法 16 張']].map(([v,n])=>`<option value="${v}" ${typeFilter===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="library-grid">${subset.map(c=>`<div class="library-item">${art(c.id,'', 'view')}<p>${E(c.effect||c.category)} · ${E(TYPE[c.type])}</p></div>`).join('')}</div>`}
 function overlay(){return viewCard&&CARD_BY_ID[viewCard]?`<div class="modal-shade" data-act="close-view"><div class="modal" role="dialog" aria-label="原版卡面預覽">${art(viewCard,'large', 'noop')}${btn('關閉卡面','close-view','small')}</div></div>`:''}
 function render(){app.innerHTML=`<main class="app-shell">${header()}${page==='home'?home():page==='setup'?setup():page==='play'&&game?(game.kind==='main'?mainPage():icePage()):page==='library'?library():rules()}</main>${overlay()}`;document.body.classList.toggle('reduced-motion',!motion);refreshFullscreenButton()}
-function goto(target){page=target;viewCard=null;focusPanel=null;selectedCard=null;render();window.scrollTo({top:0,behavior:'instant'})}
-function start(){if(preferFullscreen)requestFullscreen();const names=[...document.querySelectorAll('.player-name')].map(x=>x.value.trim());game=mode==='main'?newGame(names):newIce(names);veil=game.kind==='main';chosen=[];selectedCard=null;focusPanel=null;persist();goto('play')}
+function goto(target){if(target!=='play'&&game?.kind==='ice')iceResetControl();page=target;viewCard=null;focusPanel=null;selectedCard=null;render();window.scrollTo({top:0,behavior:'instant'})}
+function start(){if(preferFullscreen)requestFullscreen();const names=[...document.querySelectorAll('.player-name')].map(x=>x.value.trim());if(mode==='ice'&&names.length!==4){toast('平板搶拍限定四位玩家');return;}iceResetControl();game=mode==='main'?newGame(names):newIce(names);veil=game.kind==='main';chosen=[];selectedCard=null;focusPanel=null;persist();goto('play')}
 function submitMagic(){const eff=CARD_BY_ID[game.pending].effect;const v=id=>document.getElementById(id)?.value;const selection={};if(['水晶球','隱身斗篷'].includes(eff))selection.target=Number(v('magic-target'));if(['護身符','隱身斗篷'].includes(eff))selection.category=v('magic-cat');if(eff==='飛天掃帚'){selection.first=Number(v('magic-first'));selection.second=Number(v('magic-second'));}commit(()=>resolveMagic(game,selection));}
-function registerSlap(corner){if(!game||game.kind!=='ice'||game.ended||!game.last){toast('請先翻開卡牌');return}slapCount++;slapCorner=corner;document.querySelectorAll('.slap-button').forEach(b=>b.classList.toggle('slap-active',b.dataset.corner===corner));const status=document.querySelector('.ice-slap-status');if(status){status.textContent=iceStatusText();status.classList.toggle('ice-alert',iceNeedsSlap());}}
-function penaltyDialog(){if(!game.center.length){toast('目前牌桌尚未翻牌');return}const labels=game.players.map(p=>`${p.id+1}. ${p.name}`).join('\n');const input=prompt(`請輸入收牌玩家的號碼：\n${labels}`);if(input===null)return;const n=Number(input)-1;if(!game.players[n]){toast('請輸入有效的玩家號碼');return;}const type=prompt('原因：1 最後拍到、2 拍錯、3 喊錯','1');if(type===null)return;const reason=({'1':'最後拍到','2':'拍錯','3':'喊錯'})[type];if(!reason){toast('請輸入 1、2 或 3');return;}slapCorner=null;slapCount=0;commit(()=>icePenalty(game,n,reason))}
 // Presentation-only FLIP motion: changes no game state and never blocks input.
 function motionEnabled(){return motion&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches;}
 function flyCardClone(sourceRect,source,selector){
@@ -196,7 +266,7 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)re
  if(a==='toggle-motion'){motion=!motion;try{localStorage.setItem('tg-motion-enabled',String(motion))}catch(e){}if(!motion)fx.stop();render();return}
  if(a==='focus-confirm-play'){if(!selectedCard)return;const playing=selectedCard;selectedCard=null;performCardPlay(playing,app.querySelector('.focus-card-preview .art'));return}
  if(a==='setup-main'||a==='setup-ice'){mode=a==='setup-ice'?'ice':'main';size=4;goto('setup');return}
- if(a==='start'){start();return}if(a==='resume'){if(preferFullscreen)requestFullscreen();game=load();if(!game){toast('找不到可用的存檔');return;}veil=game.kind==='main'&&game.phase==='choose';goto('play');return}
+ if(a==='start'){start();return}if(a==='resume'){if(preferFullscreen)requestFullscreen();game=load();if(!game){toast('找不到可用的存檔');return;}if(game.kind==='ice'&&game.players.length!==4){toast('舊版心臟病存檔人數不相容，請新開四人局');game=null;return;}iceResetControl();veil=game.kind==='main'&&game.phase==='choose';goto('play');if(game?.kind==='ice'&&game.icePending)iceSetClock('reaction',game.last?.matched?iceSeconds*1000:2800);return}
  if(a==='unlock'){veil=false;render();return}
  if(a==='play'){if(Date.now()<suppressPlayClickUntil)return;if(game?.kind==='main'&&game.phase==='choose'){selectedCard=id;render();return}commit(()=>play(game,id));return}if(a==='complete-yes'||a==='complete-no'){commit(()=>{complete(game,a==='complete-yes');chosen=[]});return}
  if(a==='magic-go'){submitMagic();return}if(a==='magic-skip'){commit(()=>resolveMagic(game,{skip:true}));return}
@@ -204,11 +274,11 @@ app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)re
  if(a==='set-delay'){commit(()=>{delaySet(game);chosen=[]});return}
  if(a==='pass'){commit(()=>{pass(game);selectedCard=null;veil=game.phase==='choose'});if(game?.kind==='main'&&!game.ended)flyBackFromDeck();return}
  if(a==='undo'){if(!game||!game.history?.length){toast('沒有可以復原的步驟');return}commit(()=>{undo(game);selectedCard=null;focusPanel=null;veil=game.kind==='main'&&game.phase==='choose'},{silent:true});return}
- if(a==='end'){if(!confirm('確定結束並結算目前的遊戲嗎？'))return;commit(()=>game.kind==='main'?finish(game):iceFinish(game,null));return}
- if(a==='restart'){mode=game?.kind==='ice'?'ice':'main';size=game?.players?.length||4;goto('setup');return}
- if(a==='ice-flip'){if(game?.kind==='ice'){if(slapCount>0){toast('請先登記最後拍到或犯規者');return}if(iceNeedsSlap()){commit(()=>iceMissedSlap(game));slapCount=0;slapCorner=null;return}}slapCount=0;slapCorner=null;commit(()=>iceFlip(game));return}if(a==='ice-slap'){if(Date.now()-lastSlapPointerAt>500)registerSlap(b.dataset.corner);return}if(a==='ice-penalty'){penaltyDialog();return}
+ if(a==='end'){if(!confirm('確定結束並結算目前的遊戲嗎？'))return;iceResetControl();commit(()=>game.kind==='main'?finish(game):iceFinish(game,null));return}
+ if(a==='restart'){mode=game?.kind==='ice'?'ice':'main';size=game?.players?.length||4;iceResetControl();goto('setup');return}
+ if(a==='ice-flip'){if(iceCtl.mode==='ready')iceBeginFlip();return}if(a==='ice-slap'){if(Date.now()-lastSlapPointerAt>500)iceTap(b.dataset.corner,performance.now());return}if(a==='ice-pause'){icePauseToggle();return}
 });
-app.addEventListener('change',e=>{if(e.target.id==='people-count'){size=Number(e.target.value);render();}if(e.target.id==='filter-type'){typeFilter=e.target.value;render();}if(e.target.id==='fullscreen-pref'){setFullscreenPreference(e.target.checked);}});
+app.addEventListener('change',e=>{if(e.target.id==='people-count'){size=Number(e.target.value);render();}if(e.target.id==='filter-type'){typeFilter=e.target.value;render();}if(e.target.id==='fullscreen-pref'){setFullscreenPreference(e.target.checked);}if(e.target.id==='ice-seconds'){iceSeconds=Number(e.target.value);try{localStorage.setItem('tg-ice-seconds',String(iceSeconds))}catch(err){}}});
 
 // V1.4: one Pointer Events implementation for mouse, touch and pen.
 // Click = preview, deliberate pull (>= 45px) + release = immediate play anywhere.
@@ -233,7 +303,7 @@ function clearPointerDrag(){
 app.addEventListener('dragstart',e=>{if(e.target.closest?.('.focus-hand-cards .art'))e.preventDefault()});
 app.addEventListener('pointerdown',e=>{
  const slap=e.target.closest?.('.slap-button');
- if(slap){lastSlapPointerAt=Date.now();registerSlap(slap.dataset.corner);return}
+ if(slap){lastSlapPointerAt=Date.now();iceTap(slap.dataset.corner,e.timeStamp);return}
  const card=e.target.closest?.('.focus-hand-cards .art[data-act="play"]');
  if(!canDragCard(card)||e.button!==0||pointerDrag)return;
  pointerDrag={id:card.dataset.id,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastY:e.clientY,source:card,ghost:null,moved:false};
@@ -272,3 +342,5 @@ window.addEventListener('blur',clearPointerDrag);
 
 const probe=new Image();probe.onerror=()=>document.body.classList.add('no-art');probe.onload=()=>document.body.classList.remove('no-art');probe.src='./assets/cards-atlas.webp';
 render();
+// Automatically pause when tab becomes hidden to preserve fairness.
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&game?.kind==='ice'&&['reaction','result'].includes(iceCtl.mode)&&!iceCtl.paused){icePauseToggle();}});

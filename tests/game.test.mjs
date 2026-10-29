@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {newGame,newIce,active,play,complete,pass,availableSets,exchangeSet,validSet,finish,standings,iceFlip,icePenalty,iceMissedSlap,validate} from '../game.js';
+import {newGame,newIce,active,play,complete,pass,availableSets,exchangeSet,validSet,finish,standings,iceFlip,icePenalty,iceMissedSlap,iceRecordTap,iceAutoResolve,validate} from '../game.js';
 import {CARDS,CARD_BY_ID} from '../cards.js';
 import {resolveMagic,magicTargets} from '../game.js';
 test('112 unique artwork cards, 96 main and 16 magic',()=>{assert.equal(CARDS.length,112);assert.equal(new Set(CARDS.map(x=>x.id)).size,112);assert.equal(CARDS.filter(x=>x.type==='magic').length,16)});
@@ -43,4 +43,24 @@ test('ice missed slap distributes all center cards fairly among players',()=>{
  const delta=s.players.map((p,i)=>p.hand.length-before[i]);
  assert.ok(Math.max(...delta)-Math.min(...delta)<=1);
  assert.equal(s.players.reduce((n,p)=>n+p.hand.length,0),80);
+});
+
+test('four-seat referee last tapper receives pile on match',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.5);iceFlip(s);s.last.matched=true;
+ iceRecordTap(s,0,1);iceRecordTap(s,2,2);iceRecordTap(s,1,3);iceRecordTap(s,3,4);
+ const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[3]);assert.equal(s.center.length,0);
+});
+test('four-seat referee splits among non-tappers',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.5);iceFlip(s);s.last.matched=true;
+ iceRecordTap(s,0,1);iceRecordTap(s,2,2);const r=iceAutoResolve(s);
+ assert.deepEqual(r.penalized,[1,3]);assert.equal(s.players.reduce((x,p)=>x+p.hand.length,0),80);
+});
+test('four-seat referee detects wrong slap and duplicate input',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.5);iceFlip(s);s.last.matched=false;
+ assert.equal(iceRecordTap(s,1,20),true);assert.equal(iceRecordTap(s,1,21),false);
+ const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[1]);
+});
+test('four-seat referee no taps shares matched pile across four',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.5);iceFlip(s);s.last.matched=true;
+ const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[0,1,2,3]);assert.equal(s.players.reduce((x,p)=>x+p.hand.length,0),80);
 });
