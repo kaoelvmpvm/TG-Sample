@@ -206,3 +206,102 @@ body:has(.v13-layout){background:radial-gradient(ellipse at 50% -10%,#dce9e2 0%,
 @media(max-width:700px){.ice-tabletop.solo{min-height:620px}.ice-arena.ring{height:390px;padding:26px}.ice-card .art.large{--cw:172px;--ch:246px}.slap-button{width:88px;height:72px;font-size:28px}.flip-button{min-width:118px;height:62px;font-size:28px}}
 @media(max-width:580px){.ice-phase-line h2{font-size:24px}.ice-info-pill{font-size:12px;padding:9px 11px}.ice-arena.ring{height:350px;padding:16px}.ice-card{min-height:220px}.ice-card .art.large{--cw:142px;--ch:203px}.slap-button{width:70px;height:58px;border-radius:15px;font-size:24px}.slap-top{top:8px}.slap-right{right:8px}.slap-bottom{bottom:8px}.slap-left{left:8px}.flip-button{min-width:96px;height:54px;font-size:25px;border-radius:14px}}
 @media(max-width:360px){.ice-arena.ring{height:320px}.ice-card .art.large{--cw:125px;--ch:179px}.slap-button{width:60px;height:50px;font-size:22px}.flip-button{min-width:84px;height:48px;font-size:22px}}
+
+/* V1.6.1 collision-free tablet layout: dedicated positions rather than overlays */
+.ice-shell{display:block}
+.ice-tabletop.solo{min-height:0;display:flex;flex-direction:column;gap:12px}
+.ice-phase-line{text-align:center;padding:8px 8px 0}
+.ice-phase-line h2{font-size:clamp(22px,3vw,29px);margin:6px 0}
+.ice-phase-line p{opacity:.86;margin:0 auto;max-width:680px;line-height:1.55}
+.ice-info-strip{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.ice-info-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:750;color:#eefcf8}
+.ice-info-pill strong{font-size:15px;color:#fff}
+.ice-arena.ring{
+ display:grid;grid-template-areas:". top ." "left center right" ". bottom .";
+ grid-template-columns:minmax(94px,1fr) minmax(0,3.9fr) minmax(94px,1fr);
+ grid-template-rows:76px minmax(278px,auto) 76px;
+ column-gap:12px;row-gap:12px;box-sizing:border-box;
+ width:min(100%,990px);height:auto;min-height:0;margin:6px auto 0;padding:15px 20px;
+ border-radius:25px;border:1px solid rgba(238,255,251,.22);
+ background:radial-gradient(circle at center,rgba(232,247,234,.13),rgba(10,43,53,.2) 65%);
+ place-items:center;overflow:visible
+}
+.ice-arena.ring .slap-button{
+ position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+ transform:none!important;display:grid;place-items:center;
+ width:100%;max-width:132px;height:74px;margin:0;border-radius:18px;background:#f4b94c;color:#402b13;
+ font-size:30px;font-weight:950;border:3px solid #fff7d2;
+ box-shadow:0 6px 0 #c4862f,0 11px 18px rgba(0,0,0,.22);
+ touch-action:manipulation;user-select:none;-webkit-user-select:none
+}
+.ice-arena.ring .slap-button:active,.ice-arena.ring .slap-button.slap-active{
+ transform:scale(.96)!important;background:#fff2b0;box-shadow:0 3px 0 #c4862f,0 7px 12px rgba(0,0,0,.2)
+}
+.ice-arena.ring .slap-top{grid-area:top}
+.ice-arena.ring .slap-bottom{grid-area:bottom}
+.ice-arena.ring .slap-left{grid-area:left}
+.ice-arena.ring .slap-right{grid-area:right}
+.ice-arena.ring .ice-card-wrap{
+ grid-area:center;z-index:1;min-width:0;display:flex;align-items:center;
+ justify-content:center;flex-direction:row;gap:22px
+}
+.ice-arena.ring .ice-card{display:grid;place-items:center;min-height:0;max-height:none}
+.ice-arena.ring .ice-card .art.large{--cw:198px;--ch:283px;border-radius:17px}
+.ice-arena.ring .flip-button{
+ flex:0 0 auto;min-width:102px;height:74px;border-radius:17px;
+ background:linear-gradient(180deg,#3ad3b3,#0ea48d);color:#073d35;
+ font-size:31px;font-weight:950;border:3px solid #d4fff6;
+ box-shadow:0 7px 0 #0b7f6e,0 12px 20px rgba(0,0,0,.24);touch-action:manipulation;user-select:none
+}
+.ice-arena.ring .flip-button:active{transform:translateY(3px);box-shadow:0 3px 0 #0b7f6e,0 6px 10px rgba(0,0,0,.2)}
+.ice-slap-status{min-height:28px;text-align:center;font-size:14px;color:#eefcf8;font-weight:800;max-width:850px;margin:0 auto}
+.ice-slap-status.ice-alert{color:#ffe39a}
+.ice-teacher-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.ice-end-card{max-width:520px;margin:20px auto 0;padding:26px;text-align:center}
+@media(max-width:740px){
+ .ice-arena.ring{grid-template-columns:72px minmax(0,1fr) 72px;grid-template-rows:62px minmax(0,auto) 62px;column-gap:8px;row-gap:10px;padding:12px 8px}
+ .ice-arena.ring .slap-button{max-width:none;height:60px;font-size:25px;border-radius:14px}
+ .ice-arena.ring .ice-card-wrap{flex-direction:column;gap:10px;padding:2px 0}
+ .ice-arena.ring .ice-card .art.large{--cw:172px;--ch:246px}
+ .ice-arena.ring .flip-button{min-width:116px;height:57px;font-size:27px;border-radius:14px}
+}
+@media(max-width:580px){
+ .ice-phase-line h2{font-size:23px}.ice-phase-line p{font-size:13px}
+ .ice-info-pill{font-size:11px;padding:7px 9px}.ice-info-pill strong{font-size:12px}
+ .ice-arena.ring{grid-template-columns:60px minmax(0,1fr) 60px;grid-template-rows:56px auto 56px;column-gap:6px;row-gap:9px;padding:10px 6px}
+ .ice-arena.ring .slap-button{height:54px;font-size:23px;border-radius:12px;border-width:2px}
+ .ice-arena.ring .ice-card .art.large{--cw:clamp(124px,36vw,159px);--ch:calc(var(--cw)*1.43);border-radius:12px}
+ .ice-arena.ring .flip-button{min-width:98px;height:50px;font-size:24px}
+}
+@media(max-width:360px){
+ .ice-arena.ring{grid-template-columns:52px minmax(0,1fr) 52px;grid-template-rows:52px auto 52px;column-gap:4px;row-gap:8px;padding:8px 5px}
+ .ice-arena.ring .slap-button{height:50px;font-size:21px}
+ .ice-arena.ring .ice-card .art.large{--cw:122px;--ch:175px}
+ .ice-arena.ring .flip-button{min-width:88px;height:48px;font-size:22px}
+}
+@media(min-width:800px) and (max-height:850px){
+ .app-shell:has(.ice-shell){padding:7px 12px 8px;max-width:100%}
+ .app-shell:has(.ice-shell) .header{margin-bottom:7px}
+ .app-shell:has(.ice-shell) .logo{width:38px;height:38px;border-radius:11px;font-size:20px}
+ .app-shell:has(.ice-shell) .brand h1{font-size:17px}
+ .app-shell:has(.ice-shell) .brand small{display:none}
+ .app-shell:has(.ice-shell) .nav .btn{font-size:12px;padding:6px 10px}
+ .ice-tabletop.solo{padding:10px 16px;gap:5px}
+ .ice-tabletop.solo .scorebar{gap:5px}
+ .ice-tabletop.solo .score-chip{padding:4px 9px;min-width:94px;border-radius:9px}
+ .ice-tabletop.solo .score-chip strong{font-size:12px}
+ .ice-tabletop.solo .score-chip small{font-size:10px}
+ .ice-phase-line{padding:0}
+ .ice-phase-line .eyebrow{font-size:9px}
+ .ice-phase-line h2{font-size:20px;margin:1px 0}
+ .ice-phase-line p{display:none}
+ .ice-info-pill{padding:5px 10px;font-size:11px}
+ .ice-info-pill strong{font-size:12px}
+ .ice-arena.ring{grid-template-rows:53px minmax(0,auto) 53px;row-gap:7px;padding:7px 12px;margin:3px auto 0}
+ .ice-arena.ring .slap-button{height:52px;font-size:25px;border-radius:13px}
+ .ice-arena.ring .ice-card .art.large{--cw:157px;--ch:225px;border-radius:12px}
+ .ice-arena.ring .flip-button{height:58px;min-width:90px;font-size:27px}
+ .ice-slap-status{min-height:20px;font-size:12px;line-height:1.4}
+ .ice-teacher-actions .btn{padding:8px 11px;font-size:12px}
+ .ice-tabletop.solo .game-foot{display:none}
+}
