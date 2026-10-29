@@ -32,3 +32,73 @@ body.immersive-mode{background:#e8f5f0;min-height:100dvh}.fullscreen-toggle{whit
 .ice-slap-status{min-height:27px;text-align:center;font-size:13px;color:#e9f8e9;font-weight:800}.ice-deck-count{text-align:center;font-size:12px}
 @media(max-width:580px){html:fullscreen .app-shell,body.immersive-mode .app-shell{padding:8px 8px 20px}.fullscreen-setting{font-size:13px}.play-dropzone{min-height:112px}.play-dropzone strong{font-size:15px}.table-collection{padding:11px 8px}.collection-cards .art{--cw:50px;--ch:72px}.ice-arena{height:325px}.ice-card .art.large{--cw:144px;--ch:206px}.slap-button{width:65px;height:62px;border-radius:13px;font-size:23px}.slap-tl{left:6px;top:6px}.slap-tr{right:6px;top:6px}.slap-bl{left:6px;bottom:6px}.slap-br{right:6px;bottom:6px}}
 @media(max-width:370px){.slap-button{width:54px;height:53px;font-size:20px}.ice-card .art.large{--cw:130px;--ch:186px}}
+
+
+/* V1.2 — Focus Mode. Only the main game uses these selectors. */
+.focus-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;padding:4px}
+.focus-brand{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:900;letter-spacing:-.025em;color:#17384a}
+.focus-brand-mark{width:40px;height:40px;display:grid;place-items:center;background:#193c4b;color:#fff;border-radius:12px;font-size:23px}
+.focus-brand small{font-size:12px;color:#70818a;margin-left:6px}.focus-top-actions{display:flex;gap:7px}.focus-top-actions .btn{box-shadow:none}
+.focus-layout{max-width:1080px;margin:auto}.focus-table{background:#fffefa;color:#17364a;border-radius:26px;border:1px solid #dfe9e4;padding:23px 28px 15px;box-shadow:0 16px 40px rgba(18,61,66,.09)}
+.focus-status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 12px;border-bottom:1px solid #e3eae5}
+.focus-turn{display:flex;flex-direction:column;gap:4px}.focus-turn strong{font-size:clamp(20px,2.2vw,28px);line-height:1.25}.focus-kicker{font-size:12px;color:#328b7b;font-weight:900}
+.focus-current-score{display:flex;align-items:center;gap:13px;font-size:14px;font-weight:750;color:#425c65;white-space:nowrap}
+.focus-current-score span:first-child{background:#fff2cc;border:1px solid #ead7a9;padding:8px 12px;border-radius:12px;color:#645127}
+.focus-current-score strong{font-size:19px}
+.focus-roster{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.focus-rival{background:#f2f6f4;color:#536d75;border:1px solid #e5ebe8;border-radius:999px;padding:5px 10px;font-size:11px;white-space:nowrap}.focus-rival b{margin-left:6px;color:#3c5f64}
+.focus-stage{min-height:300px;margin:17px 0 0;padding:28px 24px;background:linear-gradient(160deg,#eff8f3,#e9f5f1);border:1px solid #dbece4;border-radius:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;text-align:center}
+.focus-stage h2{font-size:clamp(21px,2.5vw,28px);letter-spacing:-.025em;line-height:1.35;margin:0;color:#123e48}
+.focus-stage p{color:#536d70;line-height:1.65;margin:0;max-width:510px;font-size:14px}
+.focus-step{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;background:#d2efe5;color:#177161;border-radius:999px;font-size:12px;font-weight:900}
+.focus-stage .btn.teal{background:#0b9689;color:white;padding:13px 25px;font-size:15px;min-width:175px;box-shadow:0 4px 12px rgba(15,150,137,.14)}
+.focus-stage .btn.ghost{background:transparent;color:#3e6669;border-color:transparent;box-shadow:none}
+.focus-stage .art.large{--cw:195px;--ch:279px}.focus-handoff{min-height:390px}
+.focus-drop-intro{width:min(100%,455px)}.focus-drop-intro .play-dropzone{min-height:117px;width:100%;background:rgba(255,255,255,.68);border:2px dashed #9acbc3;color:#346c67;border-radius:16px}
+.focus-drop-intro .play-dropzone span:last-child{color:#588078}.focus-drop-intro .play-dropzone strong{font-size:16px}.focus-drop-intro .play-dropzone .dropzone-icon{font-size:23px}
+.focus-drop-intro .play-dropzone.drop-over{background:#caefe3;border-color:#0b9485;color:#11483f}
+.focus-hand{padding:20px 3px 13px}.focus-section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.focus-section-title strong{font-size:16px;color:#173d49}.focus-section-title span{font-size:12px;color:#657b82;font-weight:650}
+.focus-hand-cards{display:flex;gap:18px;justify-content:center;align-items:center;flex-wrap:wrap;padding:8px 0}
+.focus-hand-cards .art{--cw:117px;--ch:168px;border:2px solid #fff;box-shadow:0 7px 18px rgba(10,45,48,.16)}
+.focus-hand-cards .art.playable{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.focus-hand-cards .art.playable:hover,.focus-hand-cards .art.selected{transform:translateY(-8px)}
+.focus-card-preview{display:flex;justify-content:center;align-items:center;gap:28px;max-width:650px;text-align:left}.focus-card-preview .art{flex-shrink:0}
+.focus-preview-actions{display:flex;flex-direction:column;align-items:flex-start;gap:13px;max-width:300px}.focus-preview-actions .btn{min-width:195px}
+.focus-progress{margin-top:14px;background:#f5f8f5;border:1px solid #e6ece7;border-radius:18px;padding:15px 18px}
+.focus-five{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.focus-five-cell{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;min-height:75px;border-radius:12px;background:#fff;border:1px dashed #d9e1de;color:#8a9b9b}
+.focus-five-cell>span{font-size:22px}.focus-five-cell strong{font-size:12px}.focus-five-cell small{font-size:10px}
+.focus-five-cell.is-collected{border:1px solid #85d4bf;background:#e1f7ee;color:#174e49}.focus-next{font-size:12px;color:#5a7776;margin:10px 1px 0;line-height:1.4}
+.focus-bottom-actions{display:flex;justify-content:space-between;gap:10px;padding-top:12px}.focus-bottom-actions .btn{background:#fff;border-color:#dce7e2;color:#42676c;box-shadow:none}.focus-bottom-actions .btn.ghost{border-color:transparent}
+.focus-stage .focus-set-cards{display:flex;flex-wrap:wrap;justify-content:center;gap:9px}.focus-stage .focus-set-cards .art.tiny{--cw:78px;--ch:111px}
+.focus-stage .focus-primary-actions{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.focus-stage .center-game{min-height:0;padding:0;gap:10px;color:#123e48}.focus-stage .center-game h3{margin:0;color:#123e48}.focus-stage .center-game .art.large{--cw:150px;--ch:215px}.focus-stage .center-game p{color:#43656b}
+.focus-stage .result-list{max-width:560px}.focus-stage .result-item{color:#193e49;background:#fff;border:1px solid #ddebe4;text-align:left}
+.focus-shade{position:fixed;inset:0;background:rgba(8,32,42,.55);z-index:40;display:flex;justify-content:flex-end;align-items:stretch}
+.focus-drawer{width:min(100%,460px);height:100%;background:#fffefa;padding:23px 22px 30px;box-shadow:-12px 0 40px rgba(0,0,0,.2);display:flex;flex-direction:column;overflow-y:auto;color:#193f4a;overscroll-behavior:contain}
+.focus-drawer-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:18px}
+.focus-drawer-head h2{margin:3px 0;font-size:22px}.focus-drawer-head p{margin:7px 0 0;font-size:13px;color:#6c8186;line-height:1.6}
+.focus-drawer-head .btn{white-space:nowrap}.focus-drawer-note{font-size:13px;color:#5d7a7e}
+.focus-menu-actions{display:grid;gap:9px;margin-top:9px}.focus-menu-actions .btn{text-align:left;box-shadow:none;padding:15px}.focus-menu-actions .btn.danger{margin-top:16px}
+.focus-player-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.focus-player-tab{display:flex;align-items:center;gap:6px;border-radius:11px;padding:9px 11px;background:#f0f5f2;color:#45676a;font-size:13px;border:1px solid #dae5e0;font-weight:800}
+.focus-player-tab.active{background:#0b8f83;color:white;border-color:#0b8f83}.focus-player-tab small{font-size:10px;opacity:.9}
+.focus-group-list{display:grid;gap:11px}.focus-group{border:1px solid #e3ebe6;border-radius:13px;padding:12px}
+.focus-group h3{margin:0 0 9px;font-size:15px;display:flex;gap:8px;align-items:center}.focus-group h3 small{color:#71878a;font-weight:600;font-size:12px}
+.focus-group p{font-size:12px;margin:0;color:#899a9c}.focus-group-cards{display:flex;flex-wrap:wrap;gap:8px}.focus-group-cards .art.tiny{--cw:75px;--ch:107px}
+.focus-log{list-style:none;padding:0;margin:0}.focus-log li{border-bottom:1px solid #e7ebe9;padding:10px 2px;font-size:13px;line-height:1.6;color:#536d75}
+@media(min-width:1100px){html:fullscreen .focus-layout,body.immersive-mode .focus-layout{max-width:1150px}}
+@media(max-width:660px){
+.focus-header{margin-bottom:10px}.focus-brand{font-size:15px}.focus-brand-mark{height:34px;width:34px;font-size:18px}.focus-brand small{display:none}
+.focus-top-actions .btn{padding:7px 9px;font-size:12px}.focus-table{padding:12px 11px;border-radius:18px}
+.focus-status{padding:6px 2px 10px}.focus-turn strong{font-size:19px}.focus-current-score{gap:6px;font-size:11px}
+.focus-current-score span:first-child{padding:6px}.focus-current-score strong{font-size:15px}
+.focus-roster{margin-top:8px}.focus-rival{font-size:10px;padding:4px 7px}
+.focus-stage{margin-top:11px;min-height:185px;padding:18px 10px;gap:10px;border-radius:16px}.focus-stage h2{font-size:19px}.focus-stage p{font-size:12px}.focus-stage .art.large{--cw:142px;--ch:203px}.focus-handoff{min-height:310px}
+.focus-drop-intro .play-dropzone{min-height:98px}.focus-hand{padding:13px 0 4px}.focus-section-title{margin-bottom:8px}
+.focus-section-title strong{font-size:14px}.focus-section-title span{font-size:10px}.focus-hand-cards{gap:9px;flex-wrap:nowrap}.focus-hand-cards .art{--cw:93px;--ch:133px}
+.focus-card-preview{gap:13px;flex-wrap:wrap;text-align:center}.focus-preview-actions{align-items:center}.focus-preview-actions p{max-width:270px}.focus-preview-actions .btn{min-width:175px}
+.focus-progress{padding:10px 8px;margin-top:11px}.focus-five{gap:3px}.focus-five-cell{min-height:57px;gap:2px}
+.focus-five-cell>span{font-size:17px}.focus-five-cell strong{font-size:10px}.focus-five-cell small{font-size:8px}.focus-next{font-size:11px}
+.focus-stage .focus-set-cards{gap:4px}.focus-stage .focus-set-cards .art.tiny{--cw:52px;--ch:75px}
+.focus-drawer{width:100%;padding:18px 14px 28px}.focus-group-cards .art.tiny{--cw:63px;--ch:90px}
+}
+@media(max-width:360px){.focus-hand-cards .art{--cw:83px;--ch:119px}.focus-current-score{flex-wrap:wrap;justify-content:flex-end}.focus-top-actions .btn{padding:6px 7px}}
