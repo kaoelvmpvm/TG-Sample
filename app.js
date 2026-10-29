@@ -4,6 +4,7 @@ const app=document.querySelector('#app'); const elToast=document.querySelector('
 let page='home',game=null,mode='main',size=4,veil=true,viewCard=null,chosen=[],typeFilter='all',notice='',motion=true;
 let preferFullscreen=true, immersiveFallback=false, slapCorner=null, slapCount=0;
 let pointerDrag=null, dragId=null, suppressPlayClickUntil=0, lastSlapPointerAt=0;
+let focusPanel=null, focusPlayer=0, selectedCard=null;
 try{preferFullscreen=localStorage.getItem('tg-pref-fullscreen')!=='false'}catch(e){}
 const inFullscreen=()=>Boolean(document.fullscreenElement||immersiveFallback);
 function setFullscreenPreference(v){preferFullscreen=v;try{localStorage.setItem('tg-pref-fullscreen',String(v))}catch(e){}}
@@ -25,7 +26,11 @@ function toast(message){elToast.textContent=message;elToast.style.display='block
 function commit(action){try{action();persist();render()}catch(err){console.error(err);toast(err.message||'操作未完成，請再試一次。')}}
 function persist(){if(!game)return;try{localStorage.setItem(KEY,JSON.stringify(game))}catch(e){toast('瀏覽器暫時無法保存進度；遊戲仍可操作。')}}
 function load(){try{const v=localStorage.getItem(KEY);return v?validate(JSON.parse(v)):null}catch(e){console.warn('discarding corrupt local progress',e);return null}}
-function header(){return `<div class="header"><div class="brand"><div class="logo">🙌</div><div><h1>幸福 GIVE ME 5</h1><small>健康 4 EVER · 正向心理健康桌遊</small></div></div><nav class="nav">${btn(inFullscreen()?'⛶ 退出全螢幕':'⛶ 全螢幕','toggle-fullscreen','small fullscreen-toggle')} ${btn('首頁','home','small')}${btn('卡牌圖鑑','library','small')}${btn('遊戲規則','rules','small')}</nav></div>`}
+function header(){
+ const playingMain=page==='play'&&game?.kind==='main';
+ if(playingMain)return `<header class="focus-header"><div class="focus-brand"><span class="focus-brand-mark">🙌</span><span>幸福 GIVE ME 5 <small>主遊戲</small></span></div><nav class="focus-top-actions">${btn(inFullscreen()?'⛶ 退出全螢幕':'⛶ 全螢幕','toggle-fullscreen','small fullscreen-toggle')}${btn('☰ 選單','focus-menu','small')}</nav></header>`;
+ return `<div class="header"><div class="brand"><div class="logo">🙌</div><div><h1>幸福 GIVE ME 5</h1><small>健康 4 EVER · 正向心理健康桌遊</small></div></div><nav class="nav">${btn(inFullscreen()?'⛶ 退出全螢幕':'⛶ 全螢幕','toggle-fullscreen','small fullscreen-toggle')} ${btn('首頁','home','small')}${btn('卡牌圖鑑','library','small')}${btn('遊戲規則','rules','small')}</nav></div>`;
+}
 function home(){const existing=load();return `<section class="hero"><div class="eyebrow">POSITIVE MENTAL HEALTH · CARD GAME</div><h2>把幸福放在掌心，<br>讓五正成為日常。</h2><p>保留原版卡牌設計，重新打造更穩定、直覺的數位桌遊。面對面朗讀、分享、行動與互動，依然是遊戲的主角。</p>${existing?btn('▶ 繼續上一局','resume','teal'):''}</section><section class="home-grid"><button class="tile" data-act="setup-main"><span class="emoji">🃏</span><h3>主遊戲</h3><p>蒐集情緒、參與、關係、意義、成就，完成五正成套並獲取幸福健康幣。</p><span class="link">開始新遊戲 →</span></button><button class="tile" data-act="setup-ice"><span class="emoji">⚡</span><h3>幸福心臟病</h3><p>依序喊出五正，辨識牌面、搶拍、收牌。保留實體互動，由教師記錄結果。</p><span class="link">開始破冰 →</span></button><button class="tile" data-act="library"><span class="emoji">📚</span><h3>原版卡牌圖鑑</h3><p>40 任務、40 倡議、16 四樂、16 魔法。共 112 張原始卡面。</p><span class="link">瀏覽卡牌 →</span></button></section><p class="help caption">本網站為單機共用裝置版本；遊戲資料儲存在本機瀏覽器，無須帳號或後端服務。</p>`}
 function setup(){return `<div class="panel setup"><div class="eyebrow">NEW GAME</div><h2>${mode==='main'?'主遊戲':'幸福心臟病'} · 建立對局</h2><p class="help">建議 4–6 人同桌進行。為測試與小組教學，也支援 2–3 人。</p><div class="formrow"><label for="people-count">玩家人數</label><select id="people-count" class="field number">${[2,3,4,5,6].map(n=>`<option ${size===n?'selected':''} value="${n}">${n} 人</option>`).join('')}</select></div><div class="player-fields">${Array.from({length:size},(_,i)=>`<div class="field-row"><span>${i+1} 號</span><input class="field player-name" value="玩家${i+1}" maxlength="14" aria-label="第${i+1}位玩家名稱"></div>`).join('')}</div><label class="fullscreen-setting"><input id="fullscreen-pref" type="checkbox" ${preferFullscreen?'checked':''}> 開始遊戲時進入全螢幕 <small>（部分手機瀏覽器會改為專注模式；可隨時退出）</small></label><div class="notice">${mode==='main'?'出牌後的任務由同桌判定完成；系統負責洗牌、魔法效果、成套與計分。':'此模式以現場搶拍為準。系統不提前提示牌面是否吻合；由教師選擇最後壓牌或犯規者。'}</div><div class="actions">${btn('建立並開始','start','teal')}${btn('取消','home','ghost')}</div></div>`}
 function playerChips(){return `<div class="scorebar">${game.players.map((p,i)=>`<div class="score-chip ${i===game.turn?'active':''}"><strong>${E(p.name)}</strong><small>${game.kind==='main'?`🪙 ${p.coins} · ${p.sets}/3 套`:`🃏 ${p.hand.length} 張`}</small></div>`).join('')}</div>`}
@@ -51,7 +56,46 @@ function magicPanel(){const c=CARD_BY_ID[game.pending],eff=c.effect,opts=magicTa
  if(eff==='水晶球'||eff==='隱身斗篷')controls=menu('magic-target',others.filter(p=>opts.includes(p.id)),true)+(eff==='隱身斗篷'?menu('magic-cat',FIVE):'');
  if(eff==='飛天掃帚')controls=menu('magic-first',game.players,true)+menu('magic-second',game.players.slice(1),true);
  return `<div class="center-game">${art(c.id,'large')}<h3>🪄 ${E(eff)}</h3><p>請依照原版卡面執行效果。</p>${controls?`<div class="inline-form">${controls}</div>`:''}<div class="actions">${btn('確認執行魔法','magic-go','teal')}${btn('無有效目標 · 略過','magic-skip','ghost')}</div></div>`}
-function mainPage(){const [title,desc]=phaseIntro();return `<div class="layout"><section class="tabletop">${playerChips()}<div class="phase-line"><span class="eyebrow">MAIN GAME · ${game.round}</span><h2>${title}</h2><p>${desc}</p></div>${mainCenter()}${!game.ended?collectionStrip():''}<div class="game-foot"><span>原版卡面 × 正向心理健康</span><span>每人最多完成 3 套結算</span></div></section>${side(true)}</div>`}
+function focusRoster(){
+ const p=active(game);
+ return `<div class="focus-status"><div class="focus-turn"><span class="focus-kicker">第 ${game.round} 回合</span><strong>輪到 ${E(p.name)}</strong></div><div class="focus-current-score"><span>🪙 <strong>${p.coins}</strong> 幣</span><span>完成 <strong>${p.sets}/3</strong> 套</span></div></div><div class="focus-roster" aria-label="其他玩家得分">${game.players.filter(x=>x.id!==p.id).map(x=>`<span class="focus-rival">${E(x.name)} <b>🪙${x.coins}</b></span>`).join('')}</div>`;
+}
+
+function focusProgress(){
+ const p=active(game),counts=Object.fromEntries(FIVE.map(c=>[c,p.table.filter(id=>cat(id)===c).length]));
+ const missing=FIVE.filter(c=>!counts[c]),wilds=p.table.filter(id=>CARD_BY_ID[id].type==='fourjoy').length;
+ return `<section class="focus-progress" aria-label="五正蒐集進度"><div class="focus-section-title"><strong>五正蒐集</strong><span>${5-missing.length}/5 個面向</span></div><div class="focus-five">${FIVE.map(c=>`<div class="focus-five-cell ${counts[c]?'is-collected':''}"><span>${emoji[c]}</span><strong>${E(c)}</strong>${counts[c]?`<small>✓ ${counts[c]} 張</small>`:'<small>尚未取得</small>'}</div>`).join('')}</div><p class="focus-next">${missing.length?`還缺：${missing.map(E).join('、')}${wilds?'（四樂卡可替代其中一個面向）':''}`:'五正面向已蒐集齊全！'}</p></section>`;
+}
+
+function focusHand(){
+ const p=active(game);
+ return `<section class="focus-hand"><div class="focus-section-title"><strong>我的手牌</strong><span>${p.hand.length} 張 · 點選預覽／拖曳出牌</span></div><div class="focus-hand-cards">${p.hand.map(id=>art(id,`playable ${selectedCard===id?'selected':''}`,'play').replace('<button ','<button draggable="true" ')).join('')||'<span>目前沒有手牌</span>'}</div></section>`;
+}
+
+function focusStage(){
+ const p=active(game);
+ if(game.ended){const results=standings(game),winner=results.filter(x=>x.coins===results[0].coins).map(x=>x.name).join('、');return `<section class="focus-stage"><span class="focus-step">遊戲結束</span><h2>🏆 恭喜 ${E(winner)}</h2><p>以下是本局健康幣結算結果</p><div class="result-list">${results.map(x=>`<div class="result-item"><span>${x.rank} · ${E(x.name)}</span><strong>🪙 ${x.coins}｜${x.sets} 套</strong></div>`).join('')}</div>${btn('再玩一局','restart','teal')}</section>`;}
+ if(game.phase==='choose'){
+  if(veil)return `<section class="focus-stage focus-handoff"><span class="focus-step">輪替玩家</span><h2>輪到 ${E(p.name)}</h2><p>請將裝置交給這位玩家，再顯示他的手牌。</p>${btn('我準備好了，顯示手牌','unlock','teal')}</section>`;
+  const selection=p.hand.includes(selectedCard)?selectedCard:null;
+  return `<section class="focus-stage"><span class="focus-step">步驟 1 · 選擇手牌</span><h2>${selection?'確定要打出這張牌嗎？':'選一張卡牌開始回合'}</h2>${selection?`<div class="focus-card-preview">${art(selection,'large')}<div class="focus-preview-actions"><p>可以點擊卡面放大閱讀，確認後再出牌。</p>${btn('確認出牌','focus-confirm-play','teal')}${btn('返回選牌','focus-clear-select','ghost')}</div></div>`:`<div class="focus-drop-intro">${dropZone()}</div>`}</section>${focusHand()}`;
+ }
+ if(game.phase==='confirm'){const c=CARD_BY_ID[game.current];return `<section class="focus-stage"><span class="focus-step">步驟 2 · 完成任務</span><h2>${c.type==='advocacy'?'朗讀卡牌內容':'完成卡牌上的任務'}</h2><div class="focus-card-preview">${art(c.id,'large')}<div class="focus-preview-actions"><p>點擊卡牌可放大閱讀。完成後，請交由同桌確認。</p>${btn('同桌確認完成','complete-yes','teal')}${btn('尚未完成','complete-no','ghost')}</div></div></section>`;}
+ if(game.phase==='magic')return `<section class="focus-stage"><span class="focus-step">特殊事件 · 幸福魔法</span>${magicPanel()}</section>`;
+ if(game.phase==='set'){const suggestion=availableSets(p)[0]||[];if(!chosen.length)chosen=[...suggestion];return `<section class="focus-stage"><span class="focus-step">特別獎勵 · 五正成套</span><h2>✨ 集滿五正，可以兌換健康幣！</h2><p>請完成「幸福 GIVE ME 5 健康 4 EVER」手勢。</p><div class="focus-set-cards">${chosen.map(id=>art(id,'tiny')).join('')}</div><div class="focus-primary-actions">${btn('確認兌換健康幣','set-submit','teal')}${btn('稍後再兌換','set-delay','ghost')}</div></section>`;}
+ if(game.phase==='pass')return `<section class="focus-stage"><span class="focus-step">本回合完成</span><h2>✅ ${E(p.name)}，完成回合！</h2><p>下一步將補一張手牌，再交給下一位玩家。</p>${btn('補牌，換下一位','pass','teal')}</section>`;
+ return `<section class="focus-stage"><h2>系統正在確認遊戲狀態</h2>${btn('開啟選單','focus-menu')}</section>`;
+}
+
+function focusDrawer(){
+ if(!focusPanel)return '';
+ if(focusPanel==='menu')return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer" role="dialog" aria-modal="true" aria-label="遊戲選單"><div class="focus-drawer-head"><h2>遊戲選單</h2>${btn('✕ 關閉','focus-close','small')}</div><p class="focus-drawer-note">不常使用的操作集中在這裡，避免干擾遊戲。</p><div class="focus-menu-actions">${btn('🗂️ 查看集牌區','focus-collections')}${btn('📖 遊戲規則','rules')}${btn('🕒 操作紀錄','focus-log')}${btn('↶ 復原上一步','undo')}${btn('⌂ 返回首頁','home')}${btn('結束本局','end','danger')}</div></aside></div>`;
+ if(focusPanel==='log')return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer" role="dialog" aria-modal="true" aria-label="操作紀錄"><div class="focus-drawer-head"><h2>操作紀錄</h2>${btn('✕ 關閉','focus-close','small')}</div><ul class="focus-log">${game.log.map(x=>`<li>${E(x)}</li>`).join('')}</ul></aside></div>`;
+ const player=game.players[focusPlayer]||active(game),groups=[...FIVE,'四樂'];
+ return `<div class="focus-shade" data-act="focus-close"><aside class="focus-drawer focus-collection-drawer" role="dialog" aria-modal="true" aria-label="玩家集牌區"><div class="focus-drawer-head"><div><h2>公開集牌區</h2><p>選擇玩家，再查看不同面向的原版卡牌。</p></div>${btn('✕ 關閉','focus-close','small')}</div><div class="focus-player-tabs">${game.players.map(p=>`<button type="button" class="focus-player-tab ${p.id===player.id?'active':''}" data-act="focus-player" data-player="${p.id}">${E(p.name)} <small>${p.table.length} 張</small></button>`).join('')}</div><div class="focus-group-list">${groups.map(group=>{const ids=player.table.filter(id=>group==='四樂'?CARD_BY_ID[id].type==='fourjoy':cat(id)===group);return `<section class="focus-group"><h3>${group==='四樂'?'🌿':emoji[group]} ${group} <small>${ids.length} 張</small></h3>${ids.length?`<div class="focus-group-cards">${ids.map(id=>art(id,'tiny')).join('')}</div>`:'<p>尚未蒐集</p>'}</section>`}).join('')}</div></aside></div>`;
+}
+
+function mainPage(){return `<div class="focus-layout"><section class="focus-table">${focusRoster()}${focusStage()}${!game.ended?focusProgress():''}<div class="focus-bottom-actions">${btn('🗂️ 查看集牌區','focus-collections','small')}${btn('☰ 更多資訊','focus-menu','small ghost')}</div></section>${focusDrawer()}</div>`;}
 function icePage(){const p=active(game);if(game.ended)return `<div class="layout"><section class="tabletop">${playerChips()}<div class="center-game"><h2>🎉 ${game.winner===null?'本局已結束':E(game.players[game.winner].name)+' 獲勝！'}</h2>${btn('重新開始','restart','teal')}</div></section>${side()}</div>`;
  const label=FIVE[game.chant],corners=[['tl','左上'],['tr','右上'],['bl','左下'],['br','右下']];
  return `<div class="layout"><section class="tabletop ice-tabletop">${playerChips()}<div class="phase-line"><span class="eyebrow">ICEBREAKER · ${game.flips} FLIPS</span><h2>⚡ 幸福心臟病</h2><p>輪到 ${E(p.name)}。翻牌時喊出「${E(label)}」，請自行辨識是否要搶拍！</p></div><div class="ice-arena" role="group" aria-label="幸福心臟病四角拍牌區">${corners.map(([pos,name])=>`<button type="button" class="slap-button slap-${pos} ${slapCorner===pos?'slap-active':''}" data-act="ice-slap" data-corner="${pos}" aria-label="${name}拍牌">拍</button>`).join('')}<div class="ice-card">${game.last?art(game.last.card,'large'):'<div class="veil">尚未翻出卡牌</div>'}</div></div><div class="ice-slap-status" role="status">${slapCount?`已拍 ${slapCount} 次 · 請依現場結果登記最後拍到或犯規者`:'四個角皆可拍牌；實際收牌者由教師確認'}</div><div class="actions">${btn(p.hand.length?'翻下一張牌':'跳過空手玩家／判定勝負','ice-flip','teal')}${btn('登記收牌 / 犯規','ice-penalty','pink',game.center.length?'':'disabled')}</div><p class="white ice-deck-count">牌桌已有 ${game.center.length} 張 · 本局不提前顯示是否相符</p><div class="game-foot"><span>最後拍到／拍錯／喊錯的人收回桌上全部卡牌</span><span>四角拍鍵只記錄拍牌動作；不自動判定搶拍名次</span></div></section>${side()}</div>`}
@@ -59,23 +103,28 @@ function rules(){return `<article class="panel rules"><div class="eyebrow">RULE 
 function library(){const subset=CARDS.filter(c=>typeFilter==='all'||c.type===typeFilter);return `<div class="subsection"><h2>📚 原版卡牌圖鑑</h2><select id="filter-type" class="select-control" style="width:190px">${[['all','全部 112 張'],['task','任務 40 張'],['advocacy','倡議 40 張'],['fourjoy','四樂 16 張'],['magic','魔法 16 張']].map(([v,n])=>`<option value="${v}" ${typeFilter===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="library-grid">${subset.map(c=>`<div class="library-item">${art(c.id,'', 'view')}<p>${E(c.effect||c.category)} · ${E(TYPE[c.type])}</p></div>`).join('')}</div>`}
 function overlay(){return viewCard&&CARD_BY_ID[viewCard]?`<div class="modal-shade" data-act="close-view"><div class="modal" role="dialog" aria-label="原版卡面預覽">${art(viewCard,'large', 'noop')}${btn('關閉卡面','close-view','small')}</div></div>`:''}
 function render(){app.innerHTML=`<main class="app-shell">${header()}${page==='home'?home():page==='setup'?setup():page==='play'&&game?(game.kind==='main'?mainPage():icePage()):page==='library'?library():rules()}</main>${overlay()}`;document.body.classList.toggle('reduced-motion',!motion);refreshFullscreenButton()}
-function goto(target){page=target;viewCard=null;render();window.scrollTo({top:0,behavior:'instant'})}
-function start(){if(preferFullscreen)requestFullscreen();const names=[...document.querySelectorAll('.player-name')].map(x=>x.value.trim());game=mode==='main'?newGame(names):newIce(names);veil=game.kind==='main';chosen=[];persist();goto('play')}
+function goto(target){page=target;viewCard=null;focusPanel=null;selectedCard=null;render();window.scrollTo({top:0,behavior:'instant'})}
+function start(){if(preferFullscreen)requestFullscreen();const names=[...document.querySelectorAll('.player-name')].map(x=>x.value.trim());game=mode==='main'?newGame(names):newIce(names);veil=game.kind==='main';chosen=[];selectedCard=null;focusPanel=null;persist();goto('play')}
 function submitMagic(){const eff=CARD_BY_ID[game.pending].effect;const v=id=>document.getElementById(id)?.value;const selection={};if(['水晶球','隱身斗篷'].includes(eff))selection.target=Number(v('magic-target'));if(['護身符','隱身斗篷'].includes(eff))selection.category=v('magic-cat');if(eff==='飛天掃帚'){selection.first=Number(v('magic-first'));selection.second=Number(v('magic-second'));}commit(()=>resolveMagic(game,selection));}
 function registerSlap(corner){if(!game||game.kind!=='ice'||game.ended||!game.last){toast('請先翻開卡牌');return}slapCount++;slapCorner=corner;document.querySelectorAll('.slap-button').forEach(b=>b.classList.toggle('slap-active',b.dataset.corner===corner));const status=document.querySelector('.ice-slap-status');if(status)status.textContent=`已拍 ${slapCount} 次 · 請依現場結果登記最後拍到或犯規者`}
 function penaltyDialog(){if(!game.center.length){toast('目前牌桌尚未翻牌');return}const labels=game.players.map(p=>`${p.id+1}. ${p.name}`).join('\n');const input=prompt(`請輸入收牌玩家的號碼：\n${labels}`);if(input===null)return;const n=Number(input)-1;if(!game.players[n]){toast('請輸入有效的玩家號碼');return;}const type=prompt('原因：1 最後拍到、2 拍錯、3 喊錯','1');if(type===null)return;const reason=({'1':'最後拍到','2':'拍錯','3':'喊錯'})[type];if(!reason){toast('請輸入 1、2 或 3');return;}slapCorner=null;slapCount=0;commit(()=>icePenalty(game,n,reason))}
 app.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
  if(a==='noop'){e.stopPropagation();return}if(a==='toggle-fullscreen'){inFullscreen()?exitFullscreen():requestFullscreen();return}if(a==='home'){goto('home');return}if(a==='rules'){goto('rules');return}if(a==='library'){goto('library');return}
  if(a==='view'){viewCard=id;render();return}if(a==='close-view'){viewCard=null;render();return}
+ if(a==='focus-menu'||a==='focus-collections'||a==='focus-log'){focusPanel=a.slice(6);if(focusPanel==='collections')focusPlayer=game?.turn||0;render();return}
+ if(a==='focus-close'){if(e.target.closest('.focus-drawer')&&e.target.dataset.act!=='focus-close')return;focusPanel=null;render();return}
+ if(a==='focus-player'){focusPlayer=Number(b.dataset.player);render();return}
+ if(a==='focus-clear-select'){selectedCard=null;render();return}
+ if(a==='focus-confirm-play'){if(!selectedCard)return;const playing=selectedCard;selectedCard=null;commit(()=>play(game,playing));return}
  if(a==='setup-main'||a==='setup-ice'){mode=a==='setup-ice'?'ice':'main';size=4;goto('setup');return}
  if(a==='start'){start();return}if(a==='resume'){if(preferFullscreen)requestFullscreen();game=load();if(!game){toast('找不到可用的存檔');return;}veil=game.kind==='main'&&game.phase==='choose';goto('play');return}
  if(a==='unlock'){veil=false;render();return}
- if(a==='play'){if(Date.now()<suppressPlayClickUntil)return;commit(()=>play(game,id));return}if(a==='complete-yes'||a==='complete-no'){commit(()=>{complete(game,a==='complete-yes');chosen=[]});return}
+ if(a==='play'){if(Date.now()<suppressPlayClickUntil)return;if(game?.kind==='main'&&game.phase==='choose'){selectedCard=id;render();return}commit(()=>play(game,id));return}if(a==='complete-yes'||a==='complete-no'){commit(()=>{complete(game,a==='complete-yes');chosen=[]});return}
  if(a==='magic-go'){submitMagic();return}if(a==='magic-skip'){commit(()=>resolveMagic(game,{skip:true}));return}
  if(a==='set-submit'){commit(()=>{const cards=chosen.length?chosen:availableSets(active(game))[0];if(!validSet(active(game),cards))throw Error('成套卡牌需要五個不同面向');exchangeSet(game,cards);chosen=[]});return}
  if(a==='set-delay'){commit(()=>{delaySet(game);chosen=[]});return}
- if(a==='pass'){commit(()=>{pass(game);veil=game.phase==='choose'});return}
- if(a==='undo'){if(!game||!game.history?.length){toast('沒有可以復原的步驟');return}commit(()=>{undo(game);veil=game.kind==='main'&&game.phase==='choose'});return}
+ if(a==='pass'){commit(()=>{pass(game);selectedCard=null;veil=game.phase==='choose'});return}
+ if(a==='undo'){if(!game||!game.history?.length){toast('沒有可以復原的步驟');return}commit(()=>{undo(game);selectedCard=null;focusPanel=null;veil=game.kind==='main'&&game.phase==='choose'});return}
  if(a==='end'){if(!confirm('確定結束並結算目前的遊戲嗎？'))return;commit(()=>game.kind==='main'?finish(game):iceFinish(game,null));return}
  if(a==='restart'){mode=game?.kind==='ice'?'ice':'main';size=game?.players?.length||4;goto('setup');return}
  if(a==='ice-flip'){slapCount=0;slapCorner=null;commit(()=>iceFlip(game));return}if(a==='ice-slap'){if(Date.now()-lastSlapPointerAt>500)registerSlap(b.dataset.corner);return}if(a==='ice-penalty'){penaltyDialog();return}
