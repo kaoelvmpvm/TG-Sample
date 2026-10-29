@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {newGame,newIce,active,play,complete,pass,availableSets,exchangeSet,validSet,finish,standings,iceFlip,icePenalty,validate} from '../game.js';
+import {newGame,newIce,active,play,complete,pass,availableSets,exchangeSet,validSet,finish,standings,iceFlip,icePenalty,iceMissedSlap,validate} from '../game.js';
 import {CARDS,CARD_BY_ID} from '../cards.js';
 import {resolveMagic,magicTargets} from '../game.js';
 test('112 unique artwork cards, 96 main and 16 magic',()=>{assert.equal(CARDS.length,112);assert.equal(new Set(CARDS.map(x=>x.id)).size,112);assert.equal(CARDS.filter(x=>x.type==='magic').length,16)});
@@ -33,3 +33,14 @@ test('main 200 full games with magic and set operations',()=>{
  }
 });
 test('ice flip and penalty preserve all 80',()=>{const s=newIce(['A','B','C','D']);const n=s.players.reduce((a,p)=>a+p.hand.length,0);assert.equal(n,80);const flipped=iceFlip(s);assert.ok(flipped.card);icePenalty(s,2,'搶拍犯規');assert.equal(s.center.length,0);assert.equal(s.players.reduce((a,p)=>a+p.hand.length,0),80)});
+test('ice missed slap distributes all center cards fairly among players',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.5);
+ for(let i=0;i<7;i++)iceFlip(s);
+ const before=s.players.map(p=>p.hand.length),onTable=s.center.length;
+ assert.equal(onTable,7);
+ const dealt=iceMissedSlap(s);
+ assert.equal(dealt,7);assert.equal(s.center.length,0);
+ const delta=s.players.map((p,i)=>p.hand.length-before[i]);
+ assert.ok(Math.max(...delta)-Math.min(...delta)<=1);
+ assert.equal(s.players.reduce((n,p)=>n+p.hand.length,0),80);
+});

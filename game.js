@@ -141,6 +141,16 @@ export function icePenalty(s,playerId,reason){
  saveUndo(s);p.hand.push(...s.center);s.center=[];p.emptySince=null;s.turn=p.id;
  note(s,`${p.name} ${reason}，收回桌面全部卡牌。`);
 }
+export function iceMissedSlap(s){
+ if(s.phase!=='flip'||s.ended||!s.center.length)throw Error('目前沒有待處理的桌面卡牌');
+ saveUndo(s);
+ const pile=[...s.center];
+ s.center=[];
+ let given=0;
+ pile.forEach((id,i)=>{const player=s.players[i % s.players.length];player.hand.push(id);player.emptySince=null;given++;});
+ note(s,`應拍未拍，桌面 ${given} 張卡平均分回所有玩家。`);
+ return given;
+}
 export function iceFinish(s,winner){s.phase='finished';s.ended=true;s.winner=winner;note(s,winner===null?'教師結束本局。':`${s.players[winner].name} 獲勝！`)}
 export function validate(snapshot){
  if(!snapshot||snapshot.version!==1||!['main','ice'].includes(snapshot.kind)||!Array.isArray(snapshot.players)||snapshot.players.length<2||snapshot.players.length>6)throw Error('存檔版本不相容');
