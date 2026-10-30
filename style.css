@@ -441,3 +441,20 @@ body:has(.v13-layout){background:radial-gradient(ellipse at 50% -10%,#dce9e2 0%,
   .ice-arena.ring.ice-v19-arena .ice-card .art.large{--cw:116px;--ch:166px}
 }
 @media(prefers-reduced-motion:reduce){.ice-v19-arena.ice-countdown-warning::after{animation:none;opacity:1;box-shadow:0 0 0 5px rgba(255,70,72,.65)}}
+
+/* V1.9.1: Guaranteed visible warning. Its red border never fades out; only the glow pulses. */
+.ice-v19-arena.ice-countdown-warning::after{display:none!important}
+.ice-arena.ring.ice-v19-arena .ice-visible-warning-frame{
+  position:absolute;inset:10px;display:block;z-index:15;pointer-events:none;
+  border:7px solid #ff313f;border-radius:20px;
+  box-shadow:0 0 0 2px rgba(255,238,238,.85),0 0 20px rgba(255,41,53,.55),inset 0 0 18px rgba(255,48,65,.24);
+  opacity:1;animation:ice-v191-glow .86s ease-in-out infinite alternate;
+}
+.ice-arena.ring.ice-v19-arena .ice-visible-warning-frame[hidden]{display:none!important}
+.ice-v19-arena .ice-visible-warning-frame[data-speed="fast"]{animation-duration:.47s}
+.ice-v19-arena .ice-visible-warning-frame[data-speed="urgent"]{animation-duration:.20s}
+@keyframes ice-v191-glow{
+  from{box-shadow:0 0 0 2px rgba(255,238,238,.85),0 0 11px rgba(255,41,53,.4),inset 0 0 10px rgba(255,48,65,.12)}
+  to{box-shadow:0 0 0 6px rgba(255,225,225,.95),0 0 38px rgba(255,41,53,.95),inset 0 0 28px rgba(255,48,65,.4)}
+}
+@media(prefers-reduced-motion:reduce){.ice-arena.ring.ice-v19-arena .ice-visible-warning-frame{animation:none!important}}
