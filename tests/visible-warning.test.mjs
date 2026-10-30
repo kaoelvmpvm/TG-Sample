@@ -22,6 +22,29 @@ test('four directional flip controls exist but only the current seat may start f
  assert.doesNotMatch(app,/class="flip-button" data-act="ice-flip"/);
 });
 test('busted asset query versions',()=>{
- assert.match(html,/style\.css\?v=1\.9\.2/);
- assert.match(html,/app\.js\?v=1\.9\.2/);
+ assert.match(html,/style\.css\?v=1\.9\.3/);
+ assert.match(html,/app\.js\?v=1\.9\.3/);
+});
+
+test('heart-game CSS stays top-level and its four positions remain distinct',()=>{
+ const depth=source=>{
+  let count=0;
+  for(const char of source){
+   if(char==='{')count++;
+   if(char==='}'){count--;assert.ok(count>=0,'unexpected CSS closing brace')}
+  }
+  return count;
+ };
+ assert.equal(depth(css),0,'CSS braces must be balanced');
+ for(const marker of ['/* V1.8:','/* V1.9:','/* V1.9.1:','/* V1.9.2:']){
+  const idx=css.indexOf(marker);
+  assert.ok(idx>=0,'missing section '+marker);
+  assert.equal(depth(css.slice(0,idx)),0,marker+' accidentally nested under earlier @media');
+ }
+ assert.match(css,/grid-template-areas:.*left center right/);
+ for(const side of ['top','right','bottom','left']){
+  assert.ok(css.includes('.ice-v19-seat-'+side+'{grid-area:'+side+'}'),'seat '+side+' not positioned');
+ }
+ assert.match(css,/\.ice-v19-penalty-box\{/);
+ assert.match(css,/\.ice-seat-flip\{/);
 });
