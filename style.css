@@ -309,8 +309,6 @@ body:has(.v13-layout){background:radial-gradient(ellipse at 50% -10%,#dce9e2 0%,
 
 /* V1.7 four-player automated adjudication */
 .ice-auto-arena{isolation:isolate;transition:border-color .12s,box-shadow .12s}
-.ice-auto-arena.ice-must-slap{border-color:#ff555c;box-shadow:0 0 0 4px rgba(255,69,79,.5),0 0 30px rgba(255,67,76,.5),inset 0 0 30px rgba(255,67,76,.16);animation:ice-alert-glow .48s ease-in-out infinite alternate}
-.ice-auto-arena.ice-must-slap .ice-card .art{border-color:#ff535c;box-shadow:0 0 0 4px rgba(255,64,80,.65),0 0 34px rgba(255,65,76,.55)}
 @keyframes ice-alert-glow{from{box-shadow:0 0 0 2px rgba(255,70,76,.45),0 0 18px rgba(255,63,80,.26)}to{box-shadow:0 0 0 7px rgba(255,60,79,.78),0 0 45px rgba(255,64,80,.7)}}
 .ice-auto-arena.ice-paused{filter:saturate(.7)}
 .ice-auto-arena .slap-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:3px 2px;line-height:1.08}
@@ -326,10 +324,25 @@ body:has(.v13-layout){background:radial-gradient(ellipse at 50% -10%,#dce9e2 0%,
 .ice-clock strong{font-size:21px;line-height:1.1;white-space:nowrap}
 .ice-timer-track{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.27);height:8px;margin-top:7px;border-radius:12px;overflow:hidden}
 .ice-timer-progress{height:100%;width:100%;background:#ffd568;border-radius:10px;transition:width .04s linear}
-.ice-must-slap .ice-timer-progress{background:#ff6e68}
 .ice-tap-summary{color:#cdece3;text-align:center;font-size:12px;font-weight:700}
 @media(max-width:740px){.ice-center-controls{max-width:100%;gap:6px}.ice-clock{width:104px}.ice-clock strong{font-size:19px}}
 @media(max-width:580px){.ice-auto-arena .slap-button small{font-size:9px}.ice-auto-arena .slap-button .ice-slap-verb{font-size:22px}.ice-clock{width:94px}.ice-clock strong{font-size:17px}}
 @media(max-width:360px){.ice-auto-arena .slap-button small{font-size:8px}.ice-auto-arena .slap-button .ice-slap-verb{font-size:20px}.ice-clock strong{font-size:16px}}
-@media(prefers-reduced-motion:reduce){.ice-auto-arena.ice-must-slap{animation:none!important;border-color:#ff454f;box-shadow:0 0 0 5px #f55!important}}
-@media(min-width:800px) and (max-height:850px){.ice-tabletop.solo{min-height:0;gap:4px}.ice-arena.ring{margin:2px auto 0}.ice-tabletop.solo .ice-tap-summary{font-size:11px}}
+@media(prefers-reduced-motion:reduce){@media(min-width:800px) and (max-height:850px){.ice-tabletop.solo{min-height:0;gap:4px}.ice-arena.ring{margin:2px auto 0}.ice-tabletop.solo .ice-tap-summary{font-size:11px}}
+
+/* V1.8: per-seat cumulative penalty counts, independent of hand size. */
+.ice-auto-arena .slap-button .ice-seat-penalty{display:block;font-size:clamp(9px,1.15vw,11px);font-weight:900;line-height:1.15;letter-spacing:0;border-radius:20px;padding:2px 5px;background:rgba(75,40,0,.13);color:#422f18;white-space:nowrap}
+.ice-auto-arena .slap-button.ice-pressed .ice-seat-penalty{color:#164938;background:rgba(0,85,53,.1)}
+.ice-final-penalty{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px auto}
+.ice-final-penalty div{background:#eff7f4;border-radius:10px;padding:10px}
+.ice-auto-arena.ice-countdown-warning{border-color:#ff5b66;animation:ice-neutral-frame .86s ease-in-out infinite alternate}
+.ice-auto-arena.ice-countdown-warning.ice-countdown-fast{animation-duration:.47s}
+.ice-auto-arena.ice-countdown-warning.ice-countdown-urgent{animation-duration:.20s}
+.ice-auto-arena.ice-countdown-warning .ice-card .art{border-color:#ff777d}
+.ice-auto-arena.ice-countdown-warning .ice-timer-progress{background:#ff777d}
+@keyframes ice-neutral-frame{from{box-shadow:0 0 0 2px rgba(255,70,76,.38),0 0 12px rgba(255,63,80,.18)}to{box-shadow:0 0 0 7px rgba(255,60,79,.9),0 0 34px rgba(255,64,80,.64)}}
+@media(max-width:580px){.ice-auto-arena .slap-button .ice-seat-penalty{font-size:9px;padding:1px 3px}.ice-auto-arena .slap-button{gap:0}}
+@media(max-width:360px){.ice-auto-arena .slap-button .ice-seat-penalty{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.ice-auto-arena.ice-countdown-warning{animation:none!important;border-color:#ff555c;box-shadow:0 0 0 5px #f55!important}}
+@media (min-width:800px) and (max-height:850px){.ice-auto-arena .slap-button{gap:0;padding:1px 2px}.ice-auto-arena .slap-button .ice-slap-verb{font-size:20px;line-height:1}.ice-auto-arena .slap-button small{font-size:9px;line-height:1}.ice-auto-arena .slap-button .ice-seat-penalty{font-size:9px;line-height:1.05;padding:0 4px}}
+@media(max-width:360px){.ice-auto-arena .slap-button{gap:0;padding:1px 0}.ice-auto-arena .slap-button .ice-slap-verb{font-size:19px;line-height:1}.ice-auto-arena .slap-button small{font-size:8px;line-height:1}.ice-auto-arena .slap-button .ice-seat-penalty{font-size:8px;line-height:1;padding:0 2px}}

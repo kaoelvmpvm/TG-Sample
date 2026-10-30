@@ -64,3 +64,25 @@ test('four-seat referee no taps shares matched pile across four',()=>{
  const s=newIce(['A','B','C','D'],()=>0.5);iceFlip(s);s.last.matched=true;
  const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[0,1,2,3]);assert.equal(s.players.reduce((x,p)=>x+p.hand.length,0),80);
 });
+
+test('V1.8 cumulative penalty cards record allocations',()=>{
+ const s=newIce(['上','右','下','左'],()=>0.4);
+ assert.deepEqual(s.players.map(p=>p.penaltyCards),[0,0,0,0]);
+ for(let i=0;i<6;i++){iceFlip(s);if(i<5){s.last.matched=false;iceAutoResolve(s)}}
+ s.last.matched=true;
+ iceRecordTap(s,0,100);iceRecordTap(s,1,105);iceRecordTap(s,2,110);iceRecordTap(s,3,120);
+ const r=iceAutoResolve(s);assert.equal(s.players[3].penaltyCards,r.allocation[3]);
+ assert.equal(s.players.reduce((n,p)=>n+p.penaltyCards,0),6);
+ iceFlip(s);s.last.matched=false;iceAutoResolve(s);
+ assert.equal(s.players.reduce((n,p)=>n+p.penaltyCards,0),6);
+});
+test('V1.8 penalty counters are persisted and legacy saves work',()=>{
+ const s=newIce(['A','B','C','D'],()=>0.4);
+ for(let i=0;i<5;i++){iceFlip(s);if(i<4){s.last.matched=false;iceAutoResolve(s)}}
+ s.last.matched=true;iceRecordTap(s,0,90);iceRecordTap(s,2,100);
+ const r=iceAutoResolve(s);assert.equal(s.players[1].penaltyCards,r.allocation[1]);
+ assert.equal(s.players[3].penaltyCards,r.allocation[3]);
+ const snap=JSON.parse(JSON.stringify(s));validate(snap);
+ assert.deepEqual(snap.players.map(p=>p.penaltyCards),s.players.map(p=>p.penaltyCards));
+ delete snap.players[0].penaltyCards;validate(snap);assert.equal(snap.players[0].penaltyCards,0);
+});

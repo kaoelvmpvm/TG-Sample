@@ -117,7 +117,7 @@ export function finish(s,reason='教師結算'){s.ended=true;s.phase='finished';
 export function standings(s){return [...s.players].sort((a,b)=>b.coins-a.coins||b.sets-a.sets).map((p,i,arr)=>({...p,rank:1+arr.filter(q=>q.coins>p.coins).length}));}
 export function newIce(names,random=Math.random){
  if(names.length<2||names.length>6)throw Error('幸福心臟病需要 2–6 位玩家');
- const deck=shuffle(CARDS.filter(c=>['task','advocacy'].includes(c.type)).map(c=>c.id),random);const players=names.map((name,i)=>({id:i,name:name.trim()||`玩家${i+1}`,hand:[],emptySince:null}));
+ const deck=shuffle(CARDS.filter(c=>['task','advocacy'].includes(c.type)).map(c=>c.id),random);const players=names.map((name,i)=>({id:i,name:name.trim()||`玩家${i+1}`,hand:[],emptySince:null,penaltyCards:0}));
  deck.forEach((id,i)=>players[i%players.length].hand.push(id));
  return {kind:'ice',version:1,players,center:[],turn:0,chant:0,flips:0,phase:'flip',last:null,icePending:false,iceTaps:[],iceReports:[],ended:false,winner:null,log:['幸福心臟病開始，依序喊五正並翻牌。'],history:[]};
 }
@@ -140,7 +140,7 @@ export function iceFlip(s){
 export function icePenalty(s,playerId,reason){
  if(s.phase!=='flip'||s.ended||!s.center.length)throw Error('牌桌沒有可回收的卡牌');
  const p=s.players.find(q=>q.id===playerId);if(!p)throw Error('無效玩家');
- saveUndo(s);p.hand.push(...s.center);s.center=[];p.emptySince=null;s.turn=p.id;s.icePending=false;s.iceTaps=[];
+ saveUndo(s);p.penaltyCards=(p.penaltyCards||0)+s.center.length;p.hand.push(...s.center);s.center=[];p.emptySince=null;s.turn=p.id;s.icePending=false;s.iceTaps=[];
  note(s,`${p.name} ${reason}，收回桌面全部卡牌。`);
 }
 export function iceMissedSlap(s){
@@ -149,7 +149,7 @@ export function iceMissedSlap(s){
  const pile=[...s.center];
  s.center=[];
  let given=0;
- pile.forEach((id,i)=>{const player=s.players[i % s.players.length];player.hand.push(id);player.emptySince=null;given++;});
+ pile.forEach((id,i)=>{const player=s.players[i % s.players.length];player.hand.push(id);player.emptySince=null;player.penaltyCards=(player.penaltyCards||0)+1;given++;});
  note(s,`應拍未拍，桌面 ${given} 張卡平均分回所有玩家。`);
  return given;
 }
@@ -167,6 +167,7 @@ export function validate(snapshot){
   if(typeof snapshot.icePending!=='boolean')snapshot.icePending=false;
   if(!Array.isArray(snapshot.iceTaps))snapshot.iceTaps=[];
   if(!Array.isArray(snapshot.iceReports))snapshot.iceReports=[];
+  for(const p of snapshot.players){if(!Number.isSafeInteger(p.penaltyCards)||p.penaltyCards<0)p.penaltyCards=0;}
  }
  return snapshot;
 }
@@ -193,7 +194,7 @@ export function iceAutoResolve(s){
  else reason='未出現符合的拍牌條件，繼續翻牌';
  const allocation=Object.fromEntries(ids.map(id=>[id,0]));
  if(punished.length){
-  s.center.forEach((card,i)=>{const id=punished[i%punished.length];const p=s.players[id];p.hand.push(card);p.emptySince=null;allocation[id]++;});
+  s.center.forEach((card,i)=>{const id=punished[i%punished.length];const p=s.players[id];p.hand.push(card);p.emptySince=null;p.penaltyCards=(p.penaltyCards||0)+1;allocation[id]++;});
   s.center=[];
  }
  s.icePending=false;s.iceTaps=[];

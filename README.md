@@ -83,3 +83,10 @@ npm test
 - 提供倒數、結果提示、暫停，以及瀏覽器背景自動暫停。
 - 極近時間的同時觸控結果受平板硬體與瀏覽器事件順序限制。
 - 此為數位版擴充規則，不取代原桌遊規則。
+
+
+## V1.8
+
+- Each seat displays cumulative received penalty cards, independent of its current hand. These counters are saved and reset for a new game.
+- Identical countdown durations whether the card matches or not; red frame pulses in the final three seconds and accelerates at two and one seconds.
+- The live UI no longer reveals whether the current card should be slapped.
