@@ -8,6 +8,7 @@ test('one center flip starts the automatic sequence',()=>{
  assert.match(app,/class="ice-center-flip" data-act="ice-flip"/);
  assert.equal((app.match(/data-act="ice-flip"/g)||[]).length,1);
  assert.doesNotMatch(app,/class="ice-seat-flip/);
+ assert.match(app,/iceCtl\.mode==='ready'\?`<button/);
  assert.match(app,/else if\(mode==='result'\)iceBeginFlip\(\)/);
  assert.match(app,/iceAutoResolve\(game\);persist\(\);iceBeginFlip\(\)/);
 });
