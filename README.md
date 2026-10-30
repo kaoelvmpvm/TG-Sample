@@ -90,3 +90,7 @@ npm test
 - Each seat displays cumulative received penalty cards, independent of its current hand. These counters are saved and reset for a new game.
 - Identical countdown durations whether the card matches or not; red frame pulses in the final three seconds and accelerates at two and one seconds.
 - The live UI no longer reveals whether the current card should be slapped.
+
+
+## V1.9｜平板四人環繞介面修正
+上、右、下、左玩家的拍牌按鈕與受罰張數改為獨立框；倒數最後 3 秒不論牌面是否相符，皆以獨立紅框逐漸加速提醒，暫停時不閃。正誤由遊戲引擎依原版卡牌面向與喊牌比對，僅在判定後顯示結果。實際平板 UI 尚待設備驗收。

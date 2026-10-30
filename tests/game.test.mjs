@@ -86,3 +86,19 @@ test('V1.8 penalty counters are persisted and legacy saves work',()=>{
  assert.deepEqual(snap.players.map(p=>p.penaltyCards),s.players.map(p=>p.penaltyCards));
  delete snap.players[0].penaltyCards;validate(snap);assert.equal(snap.players[0].penaltyCards,0);
 });
+
+test('original card category determines a correct slap',()=>{
+ const s=newIce(['上','右','下','左'],()=>0.21),first=s.players[0].hand[0];
+ const five=['情緒','參與','關係','意義','成就'];
+ s.chant=five.indexOf(CARD_BY_ID[first].category);iceFlip(s);
+ assert.equal(s.last.matched,true);
+ iceRecordTap(s,0,100);iceRecordTap(s,1,110);iceRecordTap(s,2,120);iceRecordTap(s,3,130);
+ const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[3]);
+});
+test('original card category determines an incorrect slap',()=>{
+ const s=newIce(['上','右','下','左'],()=>0.21),first=s.players[0].hand[0];
+ const five=['情緒','參與','關係','意義','成就'];
+ s.chant=(five.indexOf(CARD_BY_ID[first].category)+1)%5;iceFlip(s);
+ assert.equal(s.last.matched,false);
+ iceRecordTap(s,2,100);const r=iceAutoResolve(s);assert.deepEqual(r.penalized,[2]);
+});
